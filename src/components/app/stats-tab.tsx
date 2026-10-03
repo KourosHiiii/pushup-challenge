@@ -9,7 +9,7 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, CalendarCheck2 } from "lucide-react";
 import { DumbbellIcon, FlameIcon, TrophyIcon, CheckBadgeIcon } from "./illustrations";
 import { faWeekdayShort, toFa } from "@/lib/dates";
 import { PLAN } from "@/lib/plan";
@@ -49,10 +49,22 @@ export function StatsTab({ state }: { state: AppStateData }) {
           tint="amber"
         />
         <StatCard
+          icon={<Zap className="size-5" />}
+          value={toFa(bestDay(state))}
+          label="رکورد یک روز"
+          tint="violet"
+        />
+        <StatCard
           icon={<CheckBadgeIcon className="size-5" />}
           value={toFa(state.totalWorkouts)}
           label="تمرین کامل"
           tint="emerald"
+        />
+        <StatCard
+          icon={<CalendarCheck2 className="size-5" />}
+          value={toFa(doneDays)}
+          label="روز کامل‌شده"
+          tint="teal"
         />
       </section>
 
@@ -193,7 +205,17 @@ const TINTS: Record<string, string> = {
   rose: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
   amber: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
   emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+  violet: "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
+  teal: "bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
 };
+
+/** بهترین رکورد شنا در یک روز */
+function bestDay(state: AppStateData): number {
+  return state.planStatus.reduce(
+    (max, d) => Math.max(max, d.completed ?? 0),
+    0
+  );
+}
 
 function StatCard({
   icon,

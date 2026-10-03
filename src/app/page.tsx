@@ -52,6 +52,10 @@ export default function Home() {
         setDialogOpen(false);
         setState(data.state as AppStateData);
         setCelebration(data.celebration as CelebrationData);
+        // هپتیک موفقیت (اندروید/مرورگرهای پشتیبان)
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate([110, 60, 110, 60, 180]);
+        }
       } catch {
         toast.error("ارتباط با سرور قطع شد");
       }
@@ -84,7 +88,13 @@ export default function Home() {
             {tab === "today" && (
               <>
                 {state.finished && <FinishedHero state={state} />}
-                <TodayTab state={state} onCheckin={() => setDialogOpen(true)} />
+                <TodayTab
+                  state={state}
+                  onCheckin={() => {
+                    if (!state.finished) setDialogOpen(true);
+                  }}
+                  onReset={handleReset}
+                />
               </>
             )}
             {tab === "plan" && <PlanTab state={state} />}

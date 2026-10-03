@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { FlameIcon, CheckBadgeIcon, MedalIcon, TrophyIcon, DumbbellIcon } from "./illustrations";
 import { toFa } from "@/lib/dates";
 import { ACHIEVEMENTS } from "@/lib/plan";
@@ -46,6 +48,28 @@ export function CelebrationOverlay({
   const newAchievements = ACHIEVEMENTS.filter((a) =>
     data?.newAchievementIds.includes(a.id)
   );
+
+  const shareText = data
+    ? !isRest
+      ? `تو «پوش‌آپ چلنج» روز ${data.dayCompleted} از چالش ۳۰ روزه شنا سوئدی رو کامل کردم — ${data.completedPushups} شنا و استریک ${data.newStreak} روزه! تو هم بیا`
+      : `تو «پوش‌آپ چلنج» استریک ${data.newStreak} روزه‌ام رو با استراحت هوشمندانه حفظ کردم! تو هم بیا`
+    : "";
+
+  async function handleShare() {
+    if (!shareText) return;
+    try {
+      if (typeof navigator !== "undefined" && "share" in navigator) {
+        await navigator.share({ title: "پوش‌آپ چلنج", text: shareText });
+      } else if (typeof navigator !== "undefined" && "clipboard" in navigator) {
+        await navigator.clipboard.writeText(shareText);
+        toast.success("متن دستاوردت کپی شد!");
+      } else {
+        toast.error("اشتراک‌گذاری پشتیبانی نمی‌شه");
+      }
+    } catch {
+      // کاربر لغو کرد — بی‌صدا رد شو
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -191,6 +215,15 @@ export function CelebrationOverlay({
             >
               {finished ? "چه سفری بود!" : "ادامه بده!"}
             </motion.button>
+
+            {/* اشتراک‌گذاری دستاورد */}
+            <button
+              onClick={handleShare}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-muted/40 py-2.5 text-[12px] font-extrabold text-muted-foreground transition-colors hover:bg-muted active:scale-[0.98]"
+            >
+              <Share2 className="size-4" />
+              لافتا رو بفرست بقیه هم بیان!
+            </button>
           </motion.div>
         </motion.div>
       )}
