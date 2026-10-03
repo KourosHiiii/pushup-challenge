@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Minus, Plus, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PushUpFigure, RestMoonIcon, FinalTestIllustration } from "./illustrations";
 import { toFa } from "@/lib/dates";
 import type { AppStateData } from "./types";
 
@@ -50,7 +50,15 @@ export function CheckinDialog({ open, onOpenChange, state, onSubmit }: CheckinDi
         {isRest ? (
           <>
             <DialogHeader className="items-center text-center">
-              <RestMoonIcon className="mx-auto size-14" />
+              <div className="mx-auto overflow-hidden rounded-2xl shadow-md ring-1 ring-emerald-200 dark:ring-emerald-800">
+                <Image
+                  src="/images/rest-hero.png"
+                  alt="عکس استراحت و ریکاوری ورزشکار"
+                  width={1152}
+                  height={864}
+                  className="h-28 w-full object-cover"
+                />
+              </div>
               <DialogTitle className="mt-2 text-base">
                 روز استراحت — {task.title}
               </DialogTitle>
@@ -71,11 +79,19 @@ export function CheckinDialog({ open, onOpenChange, state, onSubmit }: CheckinDi
         ) : (
           <>
             <DialogHeader className="items-center text-center">
-              {task.type === "final" ? (
-                <FinalTestIllustration className="mx-auto w-full max-w-[180px]" />
-              ) : (
-                <PushUpFigure className="mx-auto w-full max-w-[180px]" />
-              )}
+              <div className="mx-auto w-full overflow-hidden rounded-2xl shadow-md ring-1 ring-orange-200 dark:ring-orange-800">
+                <Image
+                  src={task.type === "final" ? "/images/final-hero.png" : "/images/pushup-hero.png"}
+                  alt={
+                    task.type === "final"
+                      ? "عکس تمرین نهایی با نورپردازی طلایی"
+                      : "عکس ورزشکار در حال انجام شنا سوئدی"
+                  }
+                  width={1152}
+                  height={864}
+                  className="h-28 w-full object-cover"
+                />
+              </div>
               <DialogTitle className="mt-1 text-base">
                 روز {toFa(task.day)}: {task.title}
               </DialogTitle>

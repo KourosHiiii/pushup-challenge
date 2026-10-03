@@ -1,13 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { Lightbulb, Info } from "lucide-react";
 import {
-  PushUpFigure,
   RestMoonIcon,
   FlameIcon,
   CheckBadgeIcon,
-  FinalTestIllustration,
   DumbbellIcon,
 } from "./illustrations";
 import { faDate, faWeekdayShort, toFa } from "@/lib/dates";
@@ -78,15 +77,32 @@ export function TodayTab({ state, onCheckin }: TodayTabProps) {
         <div className="pointer-events-none absolute -bottom-14 -right-8 size-48 rounded-full bg-white/10" />
 
         <div className="relative px-5 pb-5 pt-4 text-white">
-          {/* تصویرسازی */}
-          <div className="mx-auto -mt-1 mb-1 w-full max-w-[240px]">
-            {isRest ? (
-              <RestMoonIcon className="mx-auto size-24 drop-shadow-lg" />
-            ) : isFinal ? (
-              <FinalTestIllustration className="mx-auto w-full max-w-[240px]" />
-            ) : (
-              <PushUpFigure className="mx-auto w-full max-w-[240px]" />
-            )}
+          {/* عکس واقعی تمرین */}
+          <div className="relative mx-auto -mt-1 mb-2 w-full overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/25">
+            <Image
+              src={
+                isRest
+                  ? "/images/rest-hero.png"
+                  : isFinal
+                    ? "/images/final-hero.png"
+                    : "/images/pushup-hero.png"
+              }
+              alt={
+                isRest
+                  ? "عکس استراحت و ریکاوری ورزشکار روی مت یوگا"
+                  : isFinal
+                    ? "عکس تمرین نهایی با نورپردازی طلایی و هیجان قهرمانی"
+                    : "عکس ورزشکار در حال انجام شنا سوئدی با فرم صحیح"
+              }
+              width={1152}
+              height={864}
+              priority
+              className="h-44 w-full object-cover"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+            <span className="absolute bottom-2 right-2 rounded-full bg-black/45 px-2.5 py-1 text-[9.5px] font-extrabold text-white backdrop-blur-sm">
+              {isRest ? "ریکاوری فعال" : isFinal ? "روز آخر — همه یا هیچ!" : "فرم صحیح: بدن صاف مثل خط"}
+            </span>
           </div>
 
           <div className="text-center">

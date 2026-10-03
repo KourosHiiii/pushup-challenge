@@ -1,0 +1,60 @@
+name: Build Android APK (Capacitor)
+
+# این workflow اپ Next.js را به APK اندروید تبدیل می‌کند.
+# نحوه استفاده:
+#   1. این پروژه را به گیت‌هاب پوش بده
+#   2. در تنظیمات رپو → Actions → فعال کن
+#   3. هر بار push به main → APK در بخش Artifacts ساخته می‌شود
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── مرحله ۱: ساخت نسخه استاتیک Next.js ──
+      # نکته: برای APK، بک‌اند باید روی سرور جدا میزبانی شود و
+      # NEXT_PUBLIC_API_URL به آدرس سرور اشاره کند.
+      - name: Build Next.js app
+        run: |
+          npm install
+          npm run build
+
+      # ── مرحله ۲: افزودن Capacitor و پلتفرم اندروید ──
+      - name: Setup Capacitor
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "PushUp Challenge" com.shanayal.pushup --web-dir=out
+          npx cap add android
+
+      # ── مرحله ۳: کپی خروجی وب و بیلد APK ──
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pushup-challenge-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
