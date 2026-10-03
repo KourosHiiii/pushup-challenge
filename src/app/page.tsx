@@ -25,7 +25,7 @@ import {
   localGetFullState,
   localCheckin,
   localReset,
-} from "@/lib/local-state";
+} from "@/lib/offline-state";
 
 /** در حالت اپ اندروید (Capacitor) همه‌چیز آفلاین با localStorage اجرا می‌شود */
 function isNativeMode(): boolean {
