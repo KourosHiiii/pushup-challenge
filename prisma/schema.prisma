@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Singleton row holding the whole challenge state (personal app, single user)
+model AppState {
+  id               String    @id @default("main")
+  // Next plan day to complete (1..30)
+  currentDay       Int       @default(1)
+  // Current daily streak (consecutive calendar days with at least one check-in)
+  currentStreak    Int       @default(0)
+  bestStreak       Int       @default(0)
+  // YYYY-MM-DD (Asia/Tehran) of last check-in day
+  lastCheckinDate  String?
+  // Aggregate stats
+  totalPushups     Int       @default(0)
+  totalWorkouts    Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  records          DayRecord[]
+}
+
+// One record per completed plan day
+model DayRecord {
+  id          String   @id @default(cuid())
+  // Plan day number 1..30 (unique)
+  dayNumber   Int      @unique
+  // "workout" | "rest" | "final"
+  type        String
+  // Planned target for the day (sum of sets). For final test: 55
+  target      Int
+  // Actual push-ups done (for rest days: 0)
+  completed   Int
+  // YYYY-MM-DD (Asia/Tehran) when completed
+  date        String
+  completedAt DateTime @default(now())
+
+  stateId     String
+  state       AppState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+}
