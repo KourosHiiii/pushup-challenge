@@ -78,7 +78,11 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-orange-50/80 via-background to-background dark:from-orange-950/20">
-      {state ? <AppHeader state={state} /> : <HeaderSkeleton />}
+      {state ? (
+        <AppHeader state={state} onReset={handleReset} />
+      ) : (
+        <HeaderSkeleton />
+      )}
 
       <main className="mx-auto w-full max-w-md flex-1 px-4 pb-28 pt-4">
         {!state ? (

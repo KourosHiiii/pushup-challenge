@@ -3,11 +3,18 @@
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { FlameIcon } from "./illustrations";
+import { SettingsSheet } from "./settings-sheet";
 import { toFa } from "@/lib/dates";
 import type { AppStateData } from "./types";
 import { Button } from "@/components/ui/button";
 
-export function AppHeader({ state }: { state: AppStateData }) {
+export function AppHeader({
+  state,
+  onReset,
+}: {
+  state: AppStateData;
+  onReset: () => void;
+}) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -48,6 +55,7 @@ export function AppHeader({ state }: { state: AppStateData }) {
               {toFa(state.currentStreak)}
             </span>
           </div>
+          <SettingsSheet state={state} onReset={onReset} />
           <Button
             variant="ghost"
             size="icon"
