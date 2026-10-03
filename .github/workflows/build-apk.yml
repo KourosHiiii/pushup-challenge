@@ -44,16 +44,17 @@ jobs:
           mv /tmp/api-backup src/app/api
           ls out | head -20
 
-      # ── مرحله ۳: آیکون و اسپلش اندروید از لوگوی اپ ──
+      # ── مرحله ۳: افزودن پلتفرم اندروید ──
+      - name: Setup Capacitor Android
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      # ── مرحله ۴: آیکون و اسپلش اندروید از لوگوی اپ ──
       - name: Generate Android icons
         run: |
           npm install -D @capacitor/assets
           npx @capacitor/assets generate --android --assetPath assets || echo "icon generation skipped"
-
-      # ── مرحله ۴: افزودن پلتفرم اندروید ──
-      - name: Setup Capacitor Android
-        run: |
-          npx cap add android
           npx cap sync android
 
       # ── مرحله ۵: بیلد APK ──
