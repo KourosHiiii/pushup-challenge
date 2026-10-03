@@ -1,45 +1,52 @@
-# راهنمای نصب روی موبایل و بیلد APK
+# راهنمای نصب روی موبایل
 
-## راه ۱: نصب مستقیم به‌عنوان PWA (سریع‌ترین راه — پیشنهادی)
+## راه ۱: دانلود APK آماده (پیشنهادی — کاملاً آفلاین)
 
-این اپ به‌صورت کامل PWA ساخته شده و بدون نیاز به گوگل‌پلی، مثل یه اپ واقعی روی گوشی نصب می‌شه:
+آخرین فایل APK را از بخش **[Releases](https://github.com/KourosHiiii/pushup-challenge/releases)** ریپو دانلود کن:
+
+1. فایل `app-debug.apk` را روی گوشی دانلود کن
+2. روی فایل بزن؛ اگر پرسید، «اجازه نصب از منابع ناشناس» را بده
+3. تمام! اپ با آیکون شعله روی صفحه اصلی نصب می‌شود
+
+### ویژگی‌های نسخه APK
+
+- ✅ **کاملاً آفلاین** — همه داده‌ها (استریک، نشان‌ها، آمار) روی خود گوشی ذخیره می‌شوند
+- ✅ **یادآوری روزانه بومی اندروید** — نوتیفیکیشن با صدا حتی وقتی اپ بسته است
+  (بعد از اولین تمرین یا از ⚙️ تنظیمات فعالش کن و ساعتش را انتخاب کن)
+- ✅ بدون نیاز به اینترنت، بدون سرور
+
+## راه ۲: نصب به‌عنوان PWA (بدون APK)
 
 1. اپ را با کروم (اندروید) یا سافاری (آیفون) باز کن
 2. اندروید: منوی ⋮ → «Add to Home screen»
-   آیفون: Share → «Add to Home Screen»
-3. تمام! آیکون اپ کنار بقیه اپ‌هاست، تمام‌صفحه و بدون نوار آدرس اجرا می‌شود
+3. در این حالت نوتیف یادآوری از طریق Web Push و هنگام باز بودن سرور ارسال می‌شود
 
-## راه ۲: بیلد APK با گیت‌هاب اکشنز
+## راه ۳: بیلد خود APK
 
-پروژه شامل فایل `.github/workflows/build-apk.yml` است:
+هر push به `main` به‌صورت خودکار workflow «Build Android APK» را اجرا می‌کند
+(`.github/workflows/build-apk.yml`):
 
-1. کد را به ریپوی گیت‌هاب خودت پوش کن
-2. تب Actions را باز کن و workflow «Build Android APK» را اجرا کن
-3. بعد از اتمام، APK را از بخش Artifacts دانلود کن
+- خروجی استاتیک Next.js ساخته می‌شود (`STATIC_EXPORT=true`، مسیرهای API جابه‌جا می‌شوند)
+- آیکون و اسپلش از `assets/icon.png` و `assets/splash.png` تولید می‌شود
+- Capacitor اپ اندروید را می‌سازد و APK در **Releases** و **Artifacts** قرار می‌گیرد
 
-### نکته مهم برای APK
+بیلد دستی: تب Actions → «Build Android APK» → Run workflow
 
-وقتی اپ به‌صورت APK نصب می‌شود، بک‌اند (Next.js API) باید روی یک سرور
-میزبانی شود (مثلاً Vercel یا VPS خودت). سپس در کد فرانت‌اند آدرس API را
-به دامنه خودت تغییر بده.
-
-## راه ۳: بیلد محلی با Capacitor (روی کامپیوتر خودت)
+## راه ۴: بیلد محلی (روی کامپیوتر خودت)
 
 ```bash
-npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap init "PushUp Challenge" com.shanayal.pushup --web-dir=out
-npm run build
+npm install
+mv src/app/api /tmp/api-backup
+STATIC_EXPORT=true npm run build
+mv /tmp/api-backup src/app/api
+npm install -D @capacitor/cli
+npm install @capacitor/core @capacitor/android @capacitor/local-notifications
 npx cap add android
+npx @capacitor/assets generate --android --assetPath assets
 npx cap sync android
 cd android && ./gradlew assembleDebug
 # خروجی: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## مشخصات اپ
-
-- **چالش ۳۰ روزه** بر پایه برنامه‌های علمی (شروع با ۵ شنا → ۵۵+ در تست نهایی)
-- **استریک روزانه** سبک دولینگو + ثبت روزهای استراحت
-- **۱۴ نشان** دستاورد، **۸ سطح** از تازه‌کار تا افسانه
-- **آمار کامل**: نمودار هفتگی، نقشه ۳۰ روزه، مجموع شن‌ها
-- کاملاً **فارسی و راست‌چین** با فونت وزیرمتن
-- تم روشن و تاریک
+> نسخه وب (با سرور) برای اجرا به `.env` با کلیدهای VAPID و دیتابیس نیاز دارد
+> (`cp .env.example .env` و سپس `bun run db:push`). نسخه APK به هیچ‌کدام نیاز ندارد.

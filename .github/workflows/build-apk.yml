@@ -27,8 +27,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # SDK اندروید روی رانرهای ubuntu-latest از قبل نصب است — فقط لایسنس‌ها را تأیید کن
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
 
       # ── مرحله ۱: نصب وابستگی‌ها ──
       - name: Install dependencies
