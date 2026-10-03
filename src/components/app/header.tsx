@@ -22,8 +22,12 @@ export function AppHeader({
       <div className="mx-auto flex h-16 w-full max-w-md items-center justify-between gap-2 px-4">
         {/* لوگو و نام */}
         <div className="flex items-center gap-2.5">
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/30">
-            <FlameIcon className="size-6" />
+          <div className="relative size-10 shrink-0 overflow-hidden rounded-2xl shadow-lg shadow-orange-500/30 ring-1 ring-orange-600/20">
+            <img
+              src="/images/logo.png"
+              alt="لوگوی پوش‌آپ چلنج — شعله در حال شنا سوئدی"
+              className="size-full object-cover"
+            />
           </div>
           <div className="leading-tight">
             <p className="text-[15px] font-extrabold">پوش‌آپ چلنج</p>

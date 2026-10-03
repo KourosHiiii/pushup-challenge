@@ -1,10 +1,9 @@
 name: Build Android APK (Capacitor)
 
-# این workflow اپ Next.js را به APK اندروید تبدیل می‌کند.
-# نحوه استفاده:
-#   1. این پروژه را به گیت‌هاب پوش بده
-#   2. در تنظیمات رپو → Actions → فعال کن
-#   3. هر بار push به main → APK در بخش Artifacts ساخته می‌شود
+# بیلد اپ آفلاین اندروید:
+# 1) خروجی استاتیک Next.js (بدون API — داده‌ها در localStorage)
+# 2) wrap با Capacitor + پلاگین نوتیفیکیشن لوکال
+# 3) APK در Releases و Artifacts
 
 on:
   push:
@@ -31,30 +30,58 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # ── مرحله ۱: ساخت نسخه استاتیک Next.js ──
-      # نکته: برای APK، بک‌اند باید روی سرور جدا میزبانی شود و
-      # NEXT_PUBLIC_API_URL به آدرس سرور اشاره کند.
-      - name: Build Next.js app
-        run: |
-          npm install
-          npm run build
+      # ── مرحله ۱: نصب وابستگی‌ها ──
+      - name: Install dependencies
+        run: npm install
 
-      # ── مرحله ۲: افزودن Capacitor و پلتفرم اندروید ──
-      - name: Setup Capacitor
+      # ── مرحله ۲: بیلد استاتیک Next.js ──
+      # مسیرهای API سرور با export سازگار نیستند → موقتاً جابه‌جا می‌شوند
+      - name: Build static web app
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "PushUp Challenge" com.shanayal.pushup --web-dir=out
+          mv src/app/api /tmp/api-backup
+          STATIC_EXPORT=true npm run build
+          mv /tmp/api-backup src/app/api
+          ls out | head -20
+
+      # ── مرحله ۳: آیکون و اسپلش اندروید از لوگوی اپ ──
+      - name: Generate Android icons
+        run: |
+          npm install -D @capacitor/assets
+          npx @capacitor/assets generate --android --assetPath assets || echo "icon generation skipped"
+
+      # ── مرحله ۴: افزودن پلتفرم اندروید ──
+      - name: Setup Capacitor Android
+        run: |
           npx cap add android
+          npx cap sync android
 
-      # ── مرحله ۳: کپی خروجی وب و بیلد APK ──
+      # ── مرحله ۵: بیلد APK ──
       - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
+      # ── مرحله ۶: انتشار در Releases ──
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: pushup-challenge-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Create Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: PushUp Challenge APK v1.0.${{ github.run_number }}
+          body: |
+            📲 **اپ اندروید چالش ۳۰ روزه شنا سوئدی**
+
+            - کاملاً آفلاین — داده‌ها روی خود گوشی
+            - یادآوری روزانه با نوتیفیکیشن و صدا
+            - استریک، XP، سطح‌بندی و ۱۴ نشان
+
+            فایل APK را دانلود و نصب کنید (اجازه نصب از منابع ناشناس را بدهید).
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

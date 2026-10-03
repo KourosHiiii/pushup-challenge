@@ -14,6 +14,24 @@ import type { AppStateData, CelebrationData, TabId } from "@/components/app/type
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  registerServiceWorker,
+  syncNativeScheduleOnLoad,
+  loadReminderSettings,
+  enableReminders,
+  getPlatform,
+} from "@/lib/notifications";
+import {
+  localGetFullState,
+  localCheckin,
+  localReset,
+} from "@/lib/local-state";
+
+/** در حالت اپ اندروید (Capacitor) همه‌چیز آفلاین با localStorage اجرا می‌شود */
+function isNativeMode(): boolean {
+  if (typeof window === "undefined") return false;
+  return getPlatform() === "native";
+}
 
 export default function Home() {
   const [state, setState] = useState<AppStateData | null>(null);
@@ -22,6 +40,15 @@ export default function Home() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchState = useCallback(async () => {
+    // حالت آفلاین APK — بدون سرور
+    if (isNativeMode()) {
+      try {
+        setState(localGetFullState());
+      } catch {
+        toast.error("خطا در بارگذاری — یه بار دیگه امتحان کن");
+      }
+      return;
+    }
     try {
       const res = await fetch("/api/state", { cache: "no-store" });
       if (!res.ok) throw new Error("خطا در دریافت وضعیت");
@@ -34,10 +61,44 @@ export default function Home() {
 
   useEffect(() => {
     fetchState();
+    // ثبت service worker + همگام‌سازی زمان‌بندی نوتیف بومی (APK)
+    registerServiceWorker();
+    syncNativeScheduleOnLoad();
   }, [fetchState]);
 
   const handleCheckin = useCallback(
     async (completed?: number) => {
+      // حالت آفلاین APK
+      if (isNativeMode()) {
+        try {
+          const result = localCheckin(completed);
+          setDialogOpen(false);
+          setState(result.state);
+          setCelebration(result.celebration as CelebrationData);
+          if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+            navigator.vibrate([110, 60, 110, 60, 180]);
+          }
+          if (result.state.totalWorkouts === 1 && !loadReminderSettings().enabled) {
+            const remind = loadReminderSettings();
+            toast("⏰ هر روز یادت بندازیم بیای شنا بزنی؟", {
+              description: "یادآوری روزانه با صدا فعال بشه تا استریکت نبسته بمونه",
+              duration: 8000,
+              action: {
+                label: "فعال کن",
+                onClick: () => {
+                  enableReminders(remind.time || "20:00").then((r) => {
+                    if (r.ok) toast.success("یادآوری روزانه فعال شد! 🔔");
+                    else toast.error("مجوز نوتیفیکیشن داده نشد");
+                  });
+                },
+              },
+            });
+          }
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "ثبت نشد");
+        }
+        return;
+      }
       try {
         const res = await fetch("/api/checkin", {
           method: "POST",
@@ -56,6 +117,23 @@ export default function Home() {
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate([110, 60, 110, 60, 180]);
         }
+        // بعد از اولین تمرین، یادآوری روزانه پیشنهاد بده
+        if (data.state?.totalWorkouts === 1 && !loadReminderSettings().enabled) {
+          const remind = loadReminderSettings();
+          toast("⏰ هر روز یادت بندازیم بیای شنا بزنی؟", {
+            description: "یادآوری روزانه با صدا فعال بشه تا استریکت نبسته بمونه",
+            duration: 8000,
+            action: {
+              label: "فعال کن",
+              onClick: () => {
+                enableReminders(remind.time || "20:00").then((r) => {
+                  if (r.ok) toast.success("یادآوری روزانه فعال شد! 🔔");
+                  else toast.error("مجوز نوتیفیکیشن داده نشد");
+                });
+              },
+            },
+          });
+        }
       } catch {
         toast.error("ارتباط با سرور قطع شد");
       }
@@ -64,6 +142,17 @@ export default function Home() {
   );
 
   const handleReset = useCallback(async () => {
+    // حالت آفلاین APK
+    if (isNativeMode()) {
+      try {
+        setState(localReset());
+        setTab("today");
+        toast.success("چالش ریست شد — از روز ۱ شروع کن!");
+      } catch {
+        toast.error("ریست نشد");
+      }
+      return;
+    }
     try {
       const res = await fetch("/api/reset", { method: "POST" });
       const data = await res.json();

@@ -20,10 +20,29 @@ model AppState {
   // Aggregate stats
   totalPushups     Int       @default(0)
   totalWorkouts    Int       @default(0)
+  // Daily reminder settings
+  reminderEnabled  Boolean   @default(true)
+  // HH:mm (Asia/Tehran) for the daily reminder
+  reminderTime     String    @default("20:00")
+  // YYYY-MM-DD of last reminder push sent (avoid duplicates)
+  lastReminderSentDate String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   records          DayRecord[]
+  pushSubscriptions PushSubscription[]
+}
+
+// Web Push subscriptions (browser/PWA users)
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  stateId   String   @default("main")
+  state     AppState @relation(fields: [stateId], references: [id], onDelete: Cascade)
 }
 
 // One record per completed plan day

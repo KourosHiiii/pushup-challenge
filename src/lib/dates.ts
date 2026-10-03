@@ -64,6 +64,18 @@ export function faDate(dateStr: string): string {
   }
 }
 
+/** ساعت و دقیقه فعلی تهران (۲۴ ساعته) */
+export function tehranNowParts(): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+  const [hour, minute] = parts.split(":").map(Number);
+  return { hour, minute };
+}
+
 /** n روز اخیر به فرمت YYYY-MM-DD (از قدیمی به جدید، شامل امروز) */
 export function lastNDates(n: number): string[] {
   const out: string[] = [];

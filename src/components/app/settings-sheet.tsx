@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import {
+  BellRing,
   Info,
   Monitor,
   Moon,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ReminderSettings } from "./reminder-settings";
 import { toFa } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { FlameIcon } from "./illustrations";
@@ -138,6 +140,14 @@ export function SettingsSheet({
                 );
               })}
             </div>
+          </section>
+
+          <Separator />
+
+          {/* یادآوری روزانه */}
+          <section aria-label="یادآوری روزانه">
+            <SectionTitle icon={BellRing}>یادآوری روزانه</SectionTitle>
+            <ReminderSettings />
           </section>
 
           <Separator />
