@@ -19,13 +19,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
 
       # SDK اندروید روی رانرهای ubuntu-latest از قبل نصب است — فقط لایسنس‌ها را تأیید کن
       - name: Accept Android SDK licenses
