@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- پس‌زمینه گرد تیره با حاشیه نارنجی برای ویجت -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="20dp" />
+    <solid android:color="#F2171005" />
+    <stroke
+        android:width="1dp"
+        android:color="#59F97316" />
+</shape>

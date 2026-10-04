@@ -52,6 +52,10 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      # ── مرحله ۳.۵: نصب ویجت بومی صفحه اصلی ──
+      - name: Install Android home-screen widget
+        run: node android-widget/apply-widget.mjs
+
       # ── مرحله ۴: آیکون و اسپلش اندروید از لوگوی اپ ──
       - name: Generate Android icons
         run: |
@@ -84,6 +88,9 @@ jobs:
             - کاملاً آفلاین — داده‌ها روی خود گوشی
             - یادآوری روزانه با نوتیفیکیشن و صدا
             - استریک، XP، سطح‌بندی و ۱۴ نشان
+            - 🎓 آکادمی شنا (آموزش تصویری) + ❄️ یخ استریک
+            - 🔥 تکامل شعله + 🗓️ تقویم تمرین + تست حداکثر شنا
+            - 📱 ویجت صفحه اصلی + کارت اشتراک بدنسازی
 
             فایل APK را دانلود و نصب کنید (اجازه نصب از منابع ناشناس را بدهید).
           files: android/app/build/outputs/apk/debug/app-debug.apk

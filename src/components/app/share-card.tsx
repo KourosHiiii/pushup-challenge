@@ -189,10 +189,10 @@ export async function generateShareBlob(state: AppStateData): Promise<Blob> {
 
   // ── ماسکوت شعله (مرحله فعلی استریک) ──
   const mascotStage = getMascotStage(state.currentStreak).stage;
-  await drawMascot(ctx, mascotStage, 185);
+  await drawMascot(ctx, mascotStage, 250);
 
   // ── عدد بزرگ استریک با گرادیان طلایی ──
-  const numY = 600;
+  const numY = 590;
   const numGrad = ctx.createLinearGradient(0, numY - 210, 0, numY);
   numGrad.addColorStop(0, "#FFD54A");
   numGrad.addColorStop(1, "#FF9800");
@@ -202,17 +202,17 @@ export async function generateShareBlob(state: AppStateData): Promise<Blob> {
 
   ctx.fillStyle = WHITE;
   ctx.font = `800 46px ${font}`;
-  ctx.fillText("روز استریک 🔥", W / 2, 660);
+  ctx.fillText("روز استریک 🔥", W / 2, 648);
 
   // ── نوار پیشرفت طلایی «روز X از ۳۰» ──
   const dayShown = Math.min(state.currentDay, 30);
   ctx.fillStyle = GOLD;
   ctx.font = `700 34px ${font}`;
-  ctx.fillText(`روز ${toFa(dayShown)} از ${toFa(30)}`, W / 2, 722);
+  ctx.fillText(`روز ${toFa(dayShown)} از ${toFa(30)}`, W / 2, 708);
 
   const barX = 190;
   const barW = W - barX * 2;
-  const barY = 744;
+  const barY = 730;
   const barH = 24;
   roundedRect(ctx, barX, barY, barW, barH, 12);
   ctx.fillStyle = "rgba(255,255,255,0.16)";
@@ -231,7 +231,7 @@ export async function generateShareBlob(state: AppStateData): Promise<Blob> {
   // ── دو چیپ آمار کنار هم (RTL: مجموع شنا سمت راست) ──
   const chipW = 432;
   const chipH = 118;
-  const chipY = 812;
+  const chipY = 796;
   const rightX = W - 96 - chipW;
   const leftX = 96;
   drawChip(ctx, rightX, chipY, chipW, chipH, toFa(state.totalPushups), "مجموع شنا", font);
@@ -240,7 +240,7 @@ export async function generateShareBlob(state: AppStateData): Promise<Blob> {
   // ── شعار ──
   ctx.fillStyle = WHITE;
   ctx.font = `900 52px ${font}`;
-  ctx.fillText("قوی‌تر از دیروز 💪", W / 2, 1022);
+  ctx.fillText("قوی‌تر از دیروز 💪", W / 2, 1010);
 
   // ── برند و تاریخ شمسی ──
   ctx.fillStyle = GOLD;
