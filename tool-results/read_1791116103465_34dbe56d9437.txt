@@ -1,0 +1,679 @@
+     1→# Worklog — پروژه «پوش‌آپ چلنج» (چالش ۳۰ روزه شنا سوئدی)
+     2→
+     3→---
+     4→Task ID: 1
+     5→Agent: Z.ai Code (main)
+     6→Task: ساخت اپلیکیشن چالش ۳۰ روزه شنا سوئدی به سبک دولینگو — فول‌استک Next.js 16
+     7→
+     8→Work Log:
+     9→- تحقیق وب درباره برنامه‌های پیشرفت شنا (EverydayHealth 30-day challenge، Hundred Push Ups، اصل Progressive Overload، راهنمای فرم NASM) و اصول گیمیفیکیشن دولینگو (استریک، XP، نشان)
+    10→- طراحی دیتابیس Prisma/SQLite: مدل AppState (singleton) + DayRecord؛ اجرای db:push
+    11→- ساخت برنامه ۳۰ روزه علمی در src/lib/plan.ts: شروع ۵ شنا → ۵۵+ تست نهایی، ست‌بندی با ۶۰-۹۰ ثانیه استراحت، روز استراحت حوالی هر روز هفتم، ۸ سطح XP (تازه‌کار تا افسانه)، ۱۴ دستاورد
+    12→- API Routes: GET /api/state، POST /api/checkin (منطق استریک روزانه تهران-محور + تشخیص دستاوردهای جدید + سطح جدید)، POST /api/reset
+    13→- منطق استریک سبک دولینگو: چک‌این هر روز تقویمی استریک +۱؛ روز استراحت هم با تایید کاربر استریک را حفظ می‌کند؛ چند تمرین در یک روز استریک را دوباره حساب نمی‌کند
+    14→- UI موبایل‌فرست RTL فارسی با فونت Vazirmatn: ۴ تب (امروز/برنامه/آمار/نشان‌ها) با BottomNav متحرک framer-motion
+    15→- SVGهای اختصاصی دست‌ساز: شعله استریک، مدال، جام، هالتر، ماه استراحت، قفل و…
+    16→- جشن کاغذرنگی canvas-confetti + اورلی جشن با شمارنده متحرک، نشان‌های جدید و سطح جدید
+    17→- نمودار هفتگی recharts + نقشه ۳۰ روزه + کارت سطح
+    18→- تم روشن/تاریک با next-themes، توست sonner، دیالوگ چک‌این با استپر تعداد شنا
+    19→- PWA: manifest.json + آیکون‌های تولیدشده با هوش مصنوعی (512/192/apple)
+    20→- غیرفعال کردن devIndicators در next.config.ts (تداخل با BottomNav در حالت dev)
+    21→- تست کامل با agent-browser (موبایل 390x844 و دسکتاپ 1280x800): چک‌این روز ۱، جشن، استریک، تب برنامه/آمار/نشان‌ها، روز استراحت، حالت تاریک — همه سالم
+    22→- [بازخورد کاربر] جایگزینی آدمک SVG با ۳ عکس واقعی تولیدشده با AI: pushup-hero.png (نارنجی)، rest-hero.png (سبز/تیل)، final-hero.png (طلایی سینمایی) در کارت اصلی و دیالوگ چک‌این
+    23→- فایل .github/workflows/build-apk.yml برای بیلد APK با Capacitor در گیت‌هاب اکشنز + راهنمای MOBILE-INSTALL.md
+    24→
+    25→Stage Summary:
+    26→- اپ فول‌استک کامل و کارا: بک‌اند Prisma + ۳ API، فرانت ۴ تب با جشن و گیمیفیکیشن
+    27→- وضعیت دیتابیس ریست شده به روز ۱ برای شروع تمیز کاربر
+    28→- همه تست‌های مرورگر پاس شد؛ بدون خطای کنسول
+    29→- فایل‌های کلیدی: src/lib/plan.ts، src/lib/state.ts، src/app/api/{state,checkin,reset}/route.ts، src/components/app/*، src/app/page.tsx
+    30→
+    31→---
+    32→Task ID: 2
+    33→Agent: Z.ai Code (cron webDevReview — round 2)
+    34→Task: QA کامل + رفع باگ حالت اتمام چالش + افزودن ۵ ویژگی جدید
+    35→
+    36→Work Log:
+    37→- QA با agent-browser (موبایل 390x844): بازبینی همه تب‌ها و بررسی errors — نقطه شروع بدون خطا
+    38→- [رفع باگ] حالت finished (اتمام ۳۰ روز): قبلاً کارت «تست نهایی» تکراری نمایش داده می‌شد و کلیک روی آن خطای 400 می‌داد → حالا کارت قهرمانی با آمار (مجموع/تمرین/بهترین استریک) + دکمه «شروع دوباره چالش» نمایش داده می‌شود؛ دیالوگ چک‌این هم گارد شد
+    39→- [ویژگی جدید] تایمر استراحت بین ست‌ها (rest-timer.tsx): حلقه SVG متحرک، چیپ‌های 60/90/120 ثانیه، شروع/توقف/ریست، ویبره هپتیک پایان، فقط در روزهای تمرین نمایش داده می‌شود
+    40→- [ویژگی جدید] راهنمای فرم صحیح شنا (form-guide.tsx): آکاردئون انیمیت‌شده با ۴ اصل طلایی (بدن صاف، زاویه آرنج ۴۵ درجه، نفس‌کشیدن، دامنه کامل) + ۴ اشتباه رایج — بر پایه راهنمای NASM از تحقیقات
+    41→- [ویژگی] هپتیک: ویبره الگودار هنگام موفقیت چک‌این و پایان تایمر (navigator.vibrate با گارد)
+    42→- [ویژگی] دکمه اشتراک‌گذاری در اورلی جشن: Web Share API با fallback کپی به کلیپ‌بورد + توست
+    43→- [ویژگی] سلام زمان‌محور (صبح/وقت/عصر/شب بخیر قهرمان) با lazy initializer برای جلوگیری از hydration mismatch و رعایت قاعده react-hooks/set-state-in-effect
+    44→- [ویژگی] کارت خوش‌آمد ۳ مرحله‌ای «چالش چطوری کار می‌کنه؟» برای کاربر تازه‌کار (قبل از اولین چک‌این)
+    45→- [ویژگی] تب آمار: ۲ کارت جدید — «رکورد یک روز» (بیشترین شنا در یک روز) و «روز کامل‌شده» → شبکه ۶ کارتی با رنگ‌های جدید (violet/teal)
+    46→- [استایل] افکت active:scale-95 روی دکمه‌های نویگیشن پایین
+    47→- تست: چک‌این روز ۱ با جشن و دکمه شیر ✓ | شبیه‌سازی کامل ۳۰ روز با API → کارت قهرمانی بدون خطا ✓ | ریست از کارت قهرمانی ✓ | تایمر شروع/توقف ✓ | آکاردئون فرم ✓ | شبکه ۶ کارتی آمار ✓
+    48→- lint پاس شد (رفع خطای react-hooks/set-state-in-effect)
+    49→
+    50→Stage Summary:
+    51→- باگ مهم حالت اتمام چالش رفع شد (سناریو پایان برنامه حالا تمیز و بی‌خطاست)
+    52→- ۵ ویژگی کاربرپسند جدید: تایمر استراحت، راهنمای فرم NASM، هپتیک، اشتراک‌گذاری، خوش‌آمد کاربر جدید
+    53→- وضعیت دیتابیس ریست شد به روز ۱ با ۰ شنا برای شروع تمیز
+    54→- فایل‌های جدید: src/components/app/rest-timer.tsx، src/components/app/form-guide.tsx
+    55→- فایل‌های تغییر یافته: today-tab.tsx (بازنویسی ساختاری)، page.tsx، celebration-overlay.tsx، stats-tab.tsx، bottom-nav.tsx
+    56→
+    57→Unresolved / Next Steps:
+    58→- صداگذاری اختیاری برای پایان تایمر (Web Audio API) — پیشنهاد نوبت بعد
+    59→- حالت «تمرین آزاد» پس از اتمام چالش ۳۰ روزه (ادامه روزانه بدون برنامه ثابت)
+    60→- نمودار روند هفتگی خطی برای کل ۳۰ روز (به‌جای ۷ روز)
+    61→- کش کردن /api/state در localStorage برای نمایش آنی در باز شدن اپ (offline-first بهتر)
+    62→
+    63→---
+    64→Task ID: 3
+    65→Agent: Z.ai Code (user request — reset button)
+    66→Task: درخواست کاربر: «یه دکمه ریست روزها هم بزار که بشه همه چیو ریست کرد و از اول شروع کرد» — دکمه ریست قابل‌دسترس از همه‌جا
+    67→
+    68→Work Log:
+    69→- بررسی وضعیت: ریست قبلاً فقط ته تب نشان‌ها بود (پایین صفحه ۴م) — کاربر پیداش نکرده بود
+    70→- [کامپوننت جدید] settings-sheet.tsx: شیت «تنظیمات» با side=bottom + دستگیره کشیدنی + max-h 88dvh اسکرول‌پذیر:
+    71→  · بخش «پیشرفت فعلی»: ۳ چیپ گرادیانی (روز/استریک/شنا مجموع) با تن‌های orange/amber/teal
+    72→  · بخش «ظاهر برنامه»: رادیوگروه ۳تایی روشن/تاریک/سیستم (lucide Sun/Moon/Monitor) با active ring
+    73→  · بخش «منطقه خطر»: کارت قرمز با توضیح دقیق آنچه پاک می‌شود (X شنا، استریک X روزه، نشان‌ها) + AlertDialog تأیید «مطمئنی همه‌چیز پاک بشه؟»
+    74→  · بخش «درباره چالش»: نسخه ۱٫۰ + توضیح پایه علمی (پیش‌بار تدریجی، رشد ۱۰-۱۵٪ هفتگی، ریکاوری هر ۷ روز)
+    75→  · هپتیک ویبره هنگام تأیید ریست + بستن خودکار شیت
+    76→- header.tsx: دکمه چرخ‌دنده تنظیمات (lucide Settings) کنار دکمه تم — در هر ۴ تب قابل‌دسترس؛ پراپ onReset از page.tsx
+    77→- page.tsx: پاس دادن handleReset به AppHeader
+    78→- تست E2E با agent-browser (390x844): چک‌این روز ۱ با API → شیت باز شد (چیپ‌ها: روز ۲/استریک ۱/شنا ۷) ✓ | تم تاریک از داخل شیت فوری اعمال شد ✓ | دیالوگ تأیید با جزئیات کامل ✓ | تأیید ریست → توست سبز «چالش ریست شد» + برگشت به تب امروز + روز ۱ + کارت خوش‌آمد دوباره ظاهر شد ✓ | تم روشن برگشت ✓ | استریک هدر ۰ شد و همه ۱۴ نشان قفل شدند ✓ | بدون خطای کنسول ✓ | lint پاس ✓
+    79→
+    80→Stage Summary:
+    81→- ریست حالا دو ورودی کاربرپسند دارد: چرخ‌دنده هدر (هر تب، ۱ لمس) + منطقه خطر تب نشان‌ها
+    82→- دیتابیس به روز ۱ / استریک ۰ / ۰ شنا ریست شد برای شروع تمیز کاربر
+    83→- فایل‌های جدید: settings-sheet.tsx | تغییر: header.tsx، page.tsx
+    84→
+    85→---
+    86→Task ID: 4
+    87→Agent: Z.ai Code (user request — logo + notifications + GitHub APK + Telegram)
+    88→Task: لوگوی خوشگل + نوتیفیکیشن یادآوری روزانه با صدا + پوش گیت‌هاب و بیلد APK + ارسال با تلگرام
+    89→
+    90→Work Log:
+    91→- [لوگو] تولید ۲ کاندید با z-ai image → انتخاب ماسکات شعله دولینگو-استایل در حال شنا (logo-a) → sharp: trim حاشیه سفید، full-bleed ۱۰۲۴ → icon-512/192/apple/favicon + assets/icon.png (Capacitor) + assets/splash.png (۲۷۳۲ نارنجی + لوگو) → لوگو در هدر اپ جایگزین SVG شد
+    92→- [نوتیفیکیشن — سرور] Prisma: PushSubscription + reminderEnabled/reminderTime/lastReminderSentDate در AppState → db:push | web-push نصب + کلیدهای VAPID در .env (فقط لوکال) | src/lib/push.ts (sendPushToAll با حذف اشتراک منقضی) | ۴ روت: /api/push/{config,subscribe,test,remind-due} + /api/reminder | public/sw.js (push + notificationclick + vibrate)
+    93→- [نوتیفیکیشن — APK] @capacitor/local-notifications: کانال high-importance + زمان‌بندی repeating روزانه با allowWhileIdle (اجرا حتی با اپ بسته) → src/lib/notifications.ts چندسکویی
+    94→- [آفلاین APK] src/lib/offline-state.ts: آینه کامل منطق سرور با localStorage (استریک تهران‌محور، XP، سطح، ۱۴ نشان، جشن) — page.tsx وقتی Capacitor native است همه‌چیز را لوکال اجرا می‌کند → APK واقعاً بدون سرور کار می‌کند
+    95→- [تنظیمات] reminder-settings.tsx داخل settings-sheet: سوییچ + Select ساعت (۶ گزینه) + نوتیف آزمایشی + نکته بومی/PWA | بعد از اولین تمرین توست پیشنهاد فعال‌سازی با دکمه
+    96→- [CI بیلد APK — ۵ تلاش تا موفقیت] رفع: ① YAML خراب branches ② حذف setup-android فلیکی (SDK از پیش نصب) + yes | sdkmanager --licenses ③ local-state.ts توسط پترن local-* در gitignore نادیده گرفته می‌شد → rename به offline-state.ts ④ Node 20→22 و Java 17→21 برای Capacitor 8 ⑤ @capacitor/android به deps + ترتیب cap add قبل از icons ⑥ permissions: contents:write برای Release
+    97→- [نتیجه CI] Build success → Release v1.0.7 با app-debug.apk (15.3MB) + Artifact
+    98→- [تلگرام] از طریق @Blyra_HermesBot به @lixkoorosh: عکس لوگو ✓ + فایل APK ✓ + گزارش کامل فارسی (HTML) ✓
+    99→- git: ریپو عمومی KourosHiiii/pushup-challenge، .env/db/worklog/Caddyfile از ترک خارج، README فارسی با لوگو، توکن از remote URL پاک شد
+   100→
+   101→Stage Summary:
+   102→- لینک دانلود عمومی: github.com/KourosHiiii/pushup-challenge/releases/download/v1.0.7/app-debug.apk
+   103→- نوتیف یادآوری: APK=بومی آفلاین، وب=Web Push با cron هر ۳۰ دقیقه (job 433405) + /api/push/remind-due (فقط روزی یک‌بار، بعد از ساعت یادآوری، اگر چک‌این نشده)
+   104→- دیتابیس تمیز در روز ۱؛ همه چیز برای شروع کاربر آماده
+   105→
+   106→---
+   107→Task ID: 4
+   108→Agent: Z.ai Code (user request — logo + notifications + GitHub + APK + Telegram)
+   109→Task: لوگوی جدید، نوتیفیکیشن یادآوری با صدا، آپلود گیت‌هاب، بیلد APK و ارسال گزارش به تلگرام
+   110→
+   111→Work Log:
+   112→- وضعیت ورودی: لوگو و سیستم پوش (VAPID + ۴ API پوش + sw.js + reminder-settings UI + offline-state) توسط ایجنت موازی در همین لوپ ساخته شده بود؛ کد روی origin/main بود ولی ۴ بیلد متوالی APK شکست خورده بود
+   113→- عیب‌یابی زنجیره بیلدهای ناموفق GitHub Actions:
+   114→  1. Run 37131941014 → «Setup Android SDK» شکست (اکشن android-actions/setup-android@v3 خراب — پکیج منسوخ tools) → قبلاً با حذف استپ و تأیید لایسنس روی SDK پیش‌فرض رانر حل شده بود
+   115→  2. Run 37132194806 → «Capacitor CLI requires NodeJS >=22» → ارتقای node-version به ۲۲ + Java 21 (کامیت 90fabdb)
+   116→  3. Run 37132513670 → فایل offline-state.ts توسط الگوی local-* در .gitignore نادیده گرفته شده بود (کامیت db812f9) + افزودن @capacitor/android به dependencies (کامیت 32b571c) — بیلد گریدل موفق شد ولی استپ Release شکست خورد
+   117→  4. Release step: «Resource not accessible by integration» → افزودن permissions: contents:write (کامیت 5161eed)
+   118→- Run نهایی 37132754526 روی 5161eed: ✅ موفق کامل (static export → Capacitor → Gradle assembleDebug → Release)
+   119→- ریلیز v1.0.7 ساخته شد: https://github.com/KourosHiiii/pushup-challenge/releases/download/v1.0.7/app-debug.apk
+   120→- دانلود آرتیفکت (app-debug.apk — 15.3MB) و کپی به download/PushUp-Challenge-v1.0.7.apk
+   121→- ارسال به تلگرام (@lixkoorosh / id 6923604669) با بات: sendDocument فایل APK ✓ + sendMessage گزارش کامل فارسی ✓ (هر دو OK)
+   122→- QA محلی: لوگوی جدید ماسکوت شعله‌ای در هدر ✓ | بخش یادآوری روزانه در شیت تنظیمات (سوییچ + انتخاب ساعت ۲۰:۰۰ + دکمه تست) ✓ | /api/push/config → VAPID configured ✓ | /api/push/remind-due → حالت‌های سالم (not_time_yet / already_checked_in) ✓
+   123→- معماری نوتیف دووجهی تأیید شد: PWA → Web Push سرور-محور با صدا | APK → LocalNotifications کانال importance:5 (هدزآپ+صدا+ویبره) تکرارشونده روزانه با allowWhileIdle
+   124→
+   125→Stage Summary:
+   126→- APK قابل‌نصب در Release عمومی گیت‌هاب موجود است؛ فایل برای کاربر با تلگرام ارسال شد
+   127→- هر دو بیلد وب (سرور + استاتیک آفلاین) سالم؛ نوتیفیکیشن در هر دو حالت فعال
+   128→- ریپو: github.com/KourosHiiii/pushup-challenge (main = 5161eed)
+   129→- راز‌ها: توکن گیت‌هاب فقط در remote URL و متغیر لحظه‌ای — در ریپو کامیت نشده (تأیید شد)
+   130→
+   131→---
+   132→Task ID: 433405 (cron maintenance)
+   133→Agent: Z.ai Code (scheduled maintenance loop)
+   134→Task: Run /api/push/remind-due and record result
+   135→
+   136→Work Log:
+   137→- curl -s -X POST http://localhost:3000/api/push/remind-due → {"action":"none","reason":"not_time_yet","nowMinutes":1140,"remindMinutes":1200}
+   138→- Server healthy, HTTP 200, no errors; no fix needed. Current Tehran time 19:00 < reminder time 20:00.
+   139→
+   140→Stage Summary:
+   141→- Healthy state: user not yet past reminder time; notification will be attempted after 20:00 Asia/Tehran if no check-in. No action taken.
+   142→
+   143→---
+   144→Task ID: 433405 (cron maintenance)
+   145→Agent: Z.ai Code (scheduled maintenance loop)
+   146→Task: Run /api/push/remind-due and record result
+   147→
+   148→Work Log:
+   149→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":1170,"remindMinutes":1200}
+   150→- HTTP 200, server healthy, no fix needed. Tehran time 19:30 < reminder 20:00.
+   151→
+   152→Stage Summary:
+   153→- Healthy state; reminder window not reached. No action taken.
+   154→
+   155→---
+   156→Task ID: 433405 (cron maintenance)
+   157→Agent: Z.ai Code (scheduled maintenance loop)
+   158→Task: Run /api/push/remind-due and record result
+   159→
+   160→Work Log:
+   161→- curl → {"action":"sent","day":1,"sent":0,"failed":0,"configured":true}
+   162→- HTTP 200, server healthy. Reminder fired past 20:00 Tehran; 0 web-push subscriptions registered (sent:0, failed:0), VAPID configured.
+   163→
+   164→Stage Summary:
+   165→- Healthy: reminder pipeline executed for day 1. No web-push subscribers yet — APK users get native local notifications instead. No action taken.
+   166→
+   167→---
+   168→Task ID: 433405 (cron maintenance)
+   169→Agent: Z.ai Code (scheduled maintenance loop)
+   170→Task: Run /api/push/remind-due and record result
+   171→
+   172→Work Log:
+   173→- curl → {"action":"none","reason":"already_sent_today"}
+   174→- HTTP 200, server healthy. Daily reminder already sent earlier (00:30 run); once-per-day guard working correctly.
+   175→
+   176→Stage Summary:
+   177→- Healthy: dedup guard prevents duplicate reminders. No action taken.
+   178→
+   179→---
+   180→Task ID: 433405 (cron maintenance)
+   181→Agent: Z.ai Code (scheduled maintenance loop)
+   182→Task: Run /api/push/remind-due and record result
+   183→
+   184→Work Log:
+   185→- curl → {"action":"none","reason":"already_sent_today"}
+   186→- HTTP 200, server healthy; dedup guard active. No action needed.
+   187→
+   188→Stage Summary:
+   189→- Healthy state; no changes.
+   190→
+   191→---
+   192→Task ID: 433405 (cron maintenance)
+   193→Agent: Z.ai Code (scheduled maintenance loop)
+   194→Task: Run /api/push/remind-due and record result
+   195→
+   196→Work Log:
+   197→- curl → {"action":"none","reason":"already_sent_today"}
+   198→- HTTP 200, server healthy; dedup guard active. No action needed.
+   199→
+   200→Stage Summary:
+   201→- Healthy state; no changes.
+   202→
+   203→---
+   204→Task ID: 433405 (cron maintenance)
+   205→Agent: Z.ai Code (scheduled maintenance loop)
+   206→Task: Run /api/push/remind-due and record result
+   207→
+   208→Work Log:
+   209→- curl → {"action":"none","reason":"already_sent_today"}
+   210→- HTTP 200, server healthy; dedup guard active. No action needed.
+   211→
+   212→Stage Summary:
+   213→- Healthy state; no changes.
+   214→
+   215→---
+   216→Task ID: 433405 (cron maintenance)
+   217→Agent: Z.ai Code (scheduled maintenance loop)
+   218→Task: Run /api/push/remind-due and record result
+   219→
+   220→Work Log:
+   221→- curl → {"action":"none","reason":"already_sent_today"}
+   222→- HTTP 200, server healthy; dedup guard active. No action needed.
+   223→
+   224→Stage Summary:
+   225→- Healthy state; no changes.
+   226→
+   227→---
+   228→Task ID: 433405 (cron maintenance)
+   229→Agent: Z.ai Code (scheduled maintenance loop)
+   230→Task: Run /api/push/remind-due and record result
+   231→
+   232→Work Log:
+   233→- curl → {"action":"none","reason":"already_sent_today"}
+   234→- HTTP 200, server healthy; dedup guard active. No action needed.
+   235→
+   236→Stage Summary:
+   237→- Healthy state; no changes.
+   238→
+   239→---
+   240→Task ID: 433405 (cron maintenance)
+   241→Agent: Z.ai Code (scheduled maintenance loop)
+   242→Task: Run /api/push/remind-due and record result
+   243→
+   244→Work Log:
+   245→- curl → {"action":"none","reason":"already_sent_today"}
+   246→- HTTP 200, server healthy; dedup guard active. No action needed.
+   247→
+   248→Stage Summary:
+   249→- Healthy state; no changes.
+   250→
+   251→---
+   252→Task ID: 433405 (cron maintenance)
+   253→Agent: Z.ai Code (scheduled maintenance loop)
+   254→Task: Run /api/push/remind-due and record result
+   255→
+   256→Work Log:
+   257→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":0,"remindMinutes":1200}
+   258→- HTTP 200, server healthy. Tehran date rolled over (new day, 00:30 Tehran); sent-today guard reset correctly, next reminder window at 20:00 Tehran.
+   259→
+   260→Stage Summary:
+   261→- Healthy state: day boundary handled correctly. No changes.
+   262→
+   263→---
+   264→Task ID: 433405 (cron maintenance)
+   265→Agent: Z.ai Code (scheduled maintenance loop)
+   266→Task: Run /api/push/remind-due and record result
+   267→
+   268→Work Log:
+   269→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":30,"remindMinutes":1200}
+   270→- HTTP 200, server healthy; Tehran 01:00 < reminder 20:00. No action needed.
+   271→
+   272→Stage Summary:
+   273→- Healthy state; no changes.
+   274→
+   275→---
+   276→Task ID: 433405 (cron maintenance)
+   277→Agent: Z.ai Code (scheduled maintenance loop)
+   278→Task: Run /api/push/remind-due and record result
+   279→
+   280→Work Log:
+   281→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":60,"remindMinutes":1200}
+   282→- HTTP 200, server healthy; Tehran 01:30 < reminder 20:00. No action needed.
+   283→
+   284→Stage Summary:
+   285→- Healthy state; no changes.
+   286→
+   287→---
+   288→Task ID: 433405 (cron maintenance)
+   289→Agent: Z.ai Code (scheduled maintenance loop)
+   290→Task: Run /api/push/remind-due and record result
+   291→
+   292→Work Log:
+   293→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":90,"remindMinutes":1200}
+   294→- HTTP 200, server healthy; Tehran 02:00 < reminder 20:00. No action needed.
+   295→
+   296→Stage Summary:
+   297→- Healthy state; no changes.
+   298→
+   299→---
+   300→Task ID: 433405 (cron maintenance)
+   301→Agent: Z.ai Code (scheduled maintenance loop)
+   302→Task: Run /api/push/remind-due and record result
+   303→
+   304→Work Log:
+   305→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":120,"remindMinutes":1200}
+   306→- HTTP 200, server healthy; Tehran 02:30 < reminder 20:00. No action needed.
+   307→
+   308→Stage Summary:
+   309→- Healthy state; no changes.
+   310→
+   311→---
+   312→Task ID: 433405 (cron maintenance)
+   313→Agent: Z.ai Code (scheduled maintenance loop)
+   314→Task: Run /api/push/remind-due and record result
+   315→
+   316→Work Log:
+   317→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":150,"remindMinutes":1200}
+   318→- HTTP 200, server healthy; Tehran 03:00 < reminder 20:00. No action needed.
+   319→
+   320→Stage Summary:
+   321→- Healthy state; no changes.
+   322→
+   323→---
+   324→Task ID: 433405 (cron maintenance)
+   325→Agent: Z.ai Code (scheduled maintenance loop)
+   326→Task: Run /api/push/remind-due and record result
+   327→
+   328→Work Log:
+   329→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":180,"remindMinutes":1200}
+   330→- HTTP 200, server healthy; Tehran 03:30 < reminder 20:00. No action needed.
+   331→
+   332→Stage Summary:
+   333→- Healthy state; no changes.
+   334→
+   335→---
+   336→Task ID: 433405 (cron maintenance)
+   337→Agent: Z.ai Code (scheduled maintenance loop)
+   338→Task: Run /api/push/remind-due and record result
+   339→
+   340→Work Log:
+   341→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":210,"remindMinutes":1200}
+   342→- HTTP 200, server healthy; Tehran 04:00 < reminder 20:00. No action needed.
+   343→
+   344→Stage Summary:
+   345→- Healthy state; no changes.
+   346→
+   347→---
+   348→Task ID: 433405 (cron maintenance)
+   349→Agent: Z.ai Code (scheduled maintenance loop)
+   350→Task: Run /api/push/remind-due and record result
+   351→
+   352→Work Log:
+   353→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":240,"remindMinutes":1200}
+   354→- HTTP 200, server healthy; Tehran 04:30 < reminder 20:00. No action needed.
+   355→
+   356→Stage Summary:
+   357→- Healthy state; no changes.
+   358→
+   359→---
+   360→Task ID: 433405 (cron maintenance)
+   361→Agent: Z.ai Code (scheduled maintenance loop)
+   362→Task: Run /api/push/remind-due and record result
+   363→
+   364→Work Log:
+   365→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":270,"remindMinutes":1200}
+   366→- HTTP 200, server healthy; Tehran 05:00 < reminder 20:00. No action needed.
+   367→
+   368→Stage Summary:
+   369→- Healthy state; no changes.
+   370→
+   371→---
+   372→Task ID: 433405 (cron maintenance)
+   373→Agent: Z.ai Code (scheduled maintenance loop)
+   374→Task: Run /api/push/remind-due and record result
+   375→
+   376→Work Log:
+   377→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":300,"remindMinutes":1200}
+   378→- HTTP 200, server healthy; Tehran 05:30 < reminder 20:00. No action needed.
+   379→
+   380→Stage Summary:
+   381→- Healthy state; no changes.
+   382→
+   383→---
+   384→Task ID: 433405 (cron maintenance)
+   385→Agent: Z.ai Code (scheduled maintenance loop)
+   386→Task: Run /api/push/remind-due and record result
+   387→
+   388→Work Log:
+   389→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":330,"remindMinutes":1200}
+   390→- HTTP 200, server healthy; Tehran 06:00 < reminder 20:00. No action needed.
+   391→
+   392→Stage Summary:
+   393→- Healthy state; no changes.
+   394→
+   395→---
+   396→Task ID: 433405 (cron maintenance)
+   397→Agent: Z.ai Code (scheduled maintenance loop)
+   398→Task: Run /api/push/remind-due and record result
+   399→
+   400→Work Log:
+   401→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":360,"remindMinutes":1200}
+   402→- HTTP 200, server healthy; Tehran 06:30 < reminder 20:00. No action needed.
+   403→
+   404→Stage Summary:
+   405→- Healthy state; no changes.
+   406→
+   407→---
+   408→Task ID: 433405 (cron maintenance)
+   409→Agent: Z.ai Code (scheduled maintenance loop)
+   410→Task: Run /api/push/remind-due and record result
+   411→
+   412→Work Log:
+   413→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":390,"remindMinutes":1200}
+   414→- HTTP 200, server healthy; Tehran 07:00 < reminder 20:00. No action needed.
+   415→
+   416→Stage Summary:
+   417→- Healthy state; no changes.
+   418→
+   419→---
+   420→Task ID: 433405 (cron maintenance)
+   421→Agent: Z.ai Code (scheduled maintenance loop)
+   422→Task: Run /api/push/remind-due and record result
+   423→
+   424→Work Log:
+   425→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":420,"remindMinutes":1200}
+   426→- HTTP 200, server healthy; Tehran 07:30 < reminder 20:00. No action needed.
+   427→
+   428→Stage Summary:
+   429→- Healthy state; no changes.
+   430→
+   431→---
+   432→Task ID: 433405 (cron maintenance)
+   433→Agent: Z.ai Code (scheduled maintenance loop)
+   434→Task: Run /api/push/remind-due and record result
+   435→
+   436→Work Log:
+   437→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":450,"remindMinutes":1200}
+   438→- HTTP 200, server healthy; Tehran 08:00 < reminder 20:00. No action needed.
+   439→
+   440→Stage Summary:
+   441→- Healthy state; no changes.
+   442→
+   443→---
+   444→Task ID: 433405 (cron maintenance)
+   445→Agent: Z.ai Code (scheduled maintenance loop)
+   446→Task: Run /api/push/remind-due and record result
+   447→
+   448→Work Log:
+   449→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":480,"remindMinutes":1200}
+   450→- HTTP 200, server healthy; Tehran 08:30 < reminder 20:00. No action needed.
+   451→
+   452→Stage Summary:
+   453→- Healthy state; no changes.
+   454→
+   455→---
+   456→Task ID: 433405 (cron maintenance)
+   457→Agent: Z.ai Code (scheduled maintenance loop)
+   458→Task: Run /api/push/remind-due and record result
+   459→
+   460→Work Log:
+   461→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":510,"remindMinutes":1200}
+   462→- HTTP 200, server healthy; Tehran 09:00 < reminder 20:00. No action needed.
+   463→
+   464→Stage Summary:
+   465→- Healthy state; no changes.
+   466→
+   467→---
+   468→Task ID: 433405 (cron maintenance)
+   469→Agent: Z.ai Code (scheduled maintenance loop)
+   470→Task: Run /api/push/remind-due and record result
+   471→
+   472→Work Log:
+   473→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":540,"remindMinutes":1200}
+   474→- HTTP 200, server healthy; Tehran 09:30 < reminder 20:00. No action needed.
+   475→
+   476→Stage Summary:
+   477→- Healthy state; no changes.
+   478→
+   479→---
+   480→Task ID: 433405 (cron maintenance)
+   481→Agent: Z.ai Code (scheduled maintenance loop)
+   482→Task: Run /api/push/remind-due and record result
+   483→
+   484→Work Log:
+   485→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":570,"remindMinutes":1200}
+   486→- HTTP 200, server healthy; Tehran 10:00 < reminder 20:00. No action needed.
+   487→
+   488→Stage Summary:
+   489→- Healthy state; no changes.
+   490→
+   491→---
+   492→Task ID: 433405 (cron maintenance)
+   493→Agent: Z.ai Code (scheduled maintenance loop)
+   494→Task: Run /api/push/remind-due and record result
+   495→
+   496→Work Log:
+   497→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":600,"remindMinutes":1200}
+   498→- HTTP 200, server healthy; Tehran 10:30 < reminder 20:00. No action needed.
+   499→
+   500→Stage Summary:
+   501→- Healthy state; no changes.
+   502→
+   503→---
+   504→Task ID: 433405 (cron maintenance)
+   505→Agent: Z.ai Code (scheduled maintenance loop)
+   506→Task: Run /api/push/remind-due and record result
+   507→
+   508→Work Log:
+   509→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":630,"remindMinutes":1200}
+   510→- HTTP 200, server healthy; Tehran 11:00 < reminder 20:00. No action needed.
+   511→
+   512→Stage Summary:
+   513→- Healthy state; no changes.
+   514→
+   515→---
+   516→Task ID: 433405 (cron maintenance)
+   517→Agent: Z.ai Code (scheduled maintenance loop)
+   518→Task: Run /api/push/remind-due and record result
+   519→
+   520→Work Log:
+   521→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":660,"remindMinutes":1200}
+   522→- HTTP 200, server healthy; Tehran 11:30 < reminder 20:00. No action needed.
+   523→
+   524→Stage Summary:
+   525→- Healthy state; no changes.
+   526→
+   527→---
+   528→Task ID: 433405 (cron maintenance)
+   529→Agent: Z.ai Code (scheduled maintenance loop)
+   530→Task: Run /api/push/remind-due and record result
+   531→
+   532→Work Log:
+   533→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":690,"remindMinutes":1200}
+   534→- HTTP 200, server healthy; Tehran 12:00 < reminder 20:00. No action needed.
+   535→
+   536→Stage Summary:
+   537→- Healthy state; no changes.
+   538→
+   539→---
+   540→Task ID: 433405 (cron maintenance)
+   541→Agent: Z.ai Code (scheduled maintenance loop)
+   542→Task: Run /api/push/remind-due and record result
+   543→
+   544→Work Log:
+   545→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":720,"remindMinutes":1200}
+   546→- HTTP 200, server healthy; Tehran 12:30 < reminder 20:00. No action needed.
+   547→
+   548→Stage Summary:
+   549→- Healthy state; no changes.
+   550→
+   551→---
+   552→Task ID: 433405 (cron maintenance)
+   553→Agent: Z.ai Code (scheduled maintenance loop)
+   554→Task: Run /api/push/remind-due and record result
+   555→
+   556→Work Log:
+   557→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":750,"remindMinutes":1200}
+   558→- HTTP 200, server healthy; Tehran 12:30 < reminder 20:00. No action needed.
+   559→
+   560→Stage Summary:
+   561→- Healthy state; no changes.
+   562→
+   563→---
+   564→Task ID: 433405 (cron maintenance)
+   565→Agent: Z.ai Code (scheduled maintenance loop)
+   566→Task: Run /api/push/remind-due and record result
+   567→
+   568→Work Log:
+   569→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":780,"remindMinutes":1200}
+   570→- HTTP 200, server healthy; Tehran 13:00 < reminder 20:00. No action needed.
+   571→
+   572→Stage Summary:
+   573→- Healthy state; no changes.
+   574→
+   575→---
+   576→Task ID: 433405 (cron maintenance)
+   577→Agent: Z.ai Code (scheduled maintenance loop)
+   578→Task: Run /api/push/remind-due and record result
+   579→
+   580→Work Log:
+   581→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":810,"remindMinutes":1200}
+   582→- HTTP 200, server healthy; Tehran 13:30 < reminder 20:00. No action needed.
+   583→
+   584→Stage Summary:
+   585→- Healthy state; no changes.
+   586→
+   587→---
+   588→Task ID: 433405 (cron maintenance)
+   589→Agent: Z.ai Code (scheduled maintenance loop)
+   590→Task: Run /api/push/remind-due and record result
+   591→
+   592→Work Log:
+   593→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":840,"remindMinutes":1200}
+   594→- HTTP 200, server healthy; Tehran 14:00 < reminder 20:00. No action needed.
+   595→
+   596→Stage Summary:
+   597→- Healthy state; no changes.
+   598→
+   599→---
+   600→Task ID: 433405 (cron maintenance)
+   601→Agent: Z.ai Code (scheduled maintenance loop)
+   602→Task: Run /api/push/remind-due and record result
+   603→
+   604→Work Log:
+   605→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":870,"remindMinutes":1200}
+   606→- HTTP 200, server healthy; Tehran 14:30 < reminder 20:00. No action needed.
+   607→
+   608→Stage Summary:
+   609→- Healthy state; no changes.
+   610→
+   611→---
+   612→Task ID: 433405 (cron maintenance)
+   613→Agent: Z.ai Code (scheduled maintenance loop)
+   614→Task: Run /api/push/remind-due and record result
+   615→
+   616→Work Log:
+   617→- curl → {"action":"none","reason":"not_time_yet","nowMinutes":900,"remindMinutes":1200}
+   618→- HTTP 200, server healthy; Tehran 15:00 < reminder 20:00. No action needed.
+   619→
+   620→Stage Summary:
+   621→- Healthy state; no changes.
+   622→
+   623→---
+   624→Task ID: 5
+   625→Agent: Z.ai Code (user request — research & proposals, NO CODE until approval)
+   626→Task: تحقیق درباره ویژگی‌های بهترسازی اپ + ارائه لیست پیشنهاد برای تأیید کاربر (کاربر صراحتاً گفته تا تأیید او کد ننویس)
+   627→
+   628→Work Log:
+   629→- بررسی worklog: فهرست کامل ویژگی‌های موجود استخراج شد (۴ تب، استریک/XP/۸ سطح/۱۴ نشان، تایمر استراحت، راهنمای فرم، نوتیف، تم، ریست، PWA/APK)
+   630→- وب‌گردی ۴ کوئری: گیمیفیکیشن اپ‌های فیتنس ۲۰۲۵، فرم صحیح شنا و اشتباهات رایج، مکانیک‌های دولینگو (Streak Freeze چرخش ۲۱٪ کاهش داده!)، UX اپ‌های ورزشی (voice guidance، دیتابیس تمرین با انیمیشن، CTA برجسته)
+   631→- یافته کلیدی تحقیق: Streak Freeze/Repair دولینگو، کوئیز بعد از درس، لیگ هفتگی، voice coach، تقویم heatmap، کارت اشتراک اجتماعی
+   632→- لیست ۱۵ پیشنهاد در ۶ دسته (آموزش ایده کاربر + گیمیفیکیشن + تمرین + داده + اجتماعی + پلتفرم) با برچسب اثر/سختی به کاربر ارائه شد
+   633→- ⚠️ هنوز کدی نوشته نشده — منتظر تأیید کاربر
+   634→
+   635→Stage Summary:
+   636→- لیست پیشنهادها به کاربر ارائه شد؛ منتظر شماره‌های تأییدشده. پس از تأیید، ساخت طبق شماره‌ها شروع می‌شود.
+   637→
+   638→---
+   639→Task ID: 6
+   640→Agent: Z.ai Code (main coordinator)
+   641→Task: ساخت ۸ ویژگی تأییدشده کاربر: آکادمی شنا (تب یادگیری)، یخ استریک، تکامل شعله، تست ماکس رپس، تقویم حرارتی، وزن+عکس، کارت اشتراک بدنسازی، ویجت اندروید، حالت تمرین آزاد
+   642→
+   643→## 📋 CONTRACT (منبع واحد حقیقت برای همه ایجنت‌ها)
+   644→
+   645→### تصاویر (تولید با AI — در حال انجام توسط coordinator):
+   646→`public/learn/form-start.png` | `form-mid.png` | `form-bottom.png` | `mistake-hips.png` | `mistake-elbows.png` | `mistake-halfrep.png` | `anatomy.png` | `var-knee.png` | `var-incline.png` | `var-wide.png` | `var-diamond.png` | `var-decline.png`
+   647→`public/images/share-bg.png` (پس‌زمینه سینمایی کارت اشتراک)
+   648→
+   649→### types.ts (تغییر یافته — coordinator):
+   650→- TabId: + "learn"
+   651→- AppStateData: + freezeAvailable, freezeUsedDate, freezeNextAvailableDate, freeMode, calendarDays({date,pushups}[] آخرین ۷۰ روز)
+   652→- CelebrationData: + freezeUsed?
+   653→- NEW: MaxRepTestItem{id,count,date}, WeightItem{date,kg}, BodyPhotoItem{image,date}, BodyData{weights,photos{before,after}}
+   654→
+   655→### prisma schema (pushed):
+   656→AppState: + freezeUsedDate String?, freeMode Boolean
+   657→NEW: MaxRepTest{count,date}, WeightEntry{date @unique, kg Float}, BodyPhoto{slot @unique("before"|"after"), image base64, date}
+   658→
+   659→### منطق یخ استریک (سرور + آفلاین یکسان):
+   660→- freezeAvailable: freezeUsedDate==null || daysBetween(freezeUsedDate,today)>=7
+   661→- چک‌این با گپ دقیقاً ۱ روز جاافتاده (daysBetween==2) && freezeAvailable → استریک حفظ می‌شود: newStreak=prev+1، freezeUsedDate=today، celebration.freezeUsed=true
+   662→- گپ >=۳ روز → استریک=۱ (freeze مصرف نمی‌شود)
+   663→
+   664→### حالت تمرین آزاد:
+   665→- finished && freeMode → چک‌این آزاد: DayRecord dayNumber=currentDay(31+), type="free", target=0، استریک عادی، currentDay+1
+   666→- POST /api/free-mode {enabled}
+   667→
+   668→### API جدید:
+   669→- GET/POST /api/max-reps → {tests, best, isRecord}
+   670→- GET /api/body | POST /api/body/weight {kg 20..400} | POST /api/body/photo {slot,image} | DELETE /api/body/photo?slot=
+   671→- offline-state.ts باید همه را با localStorage آینه کند: localMaxReps/localBody/localSetFreeMode
+   672→
+   673→### مالکیت فایل‌ها (جلوگیری از تداخل):
+   674→- 6-a backend: state.ts, offline-state.ts, api/checkin, api/state, api/reset, api/max-reps, api/body/*, api/free-mode
+   675→- 6-b learn: learn-tab.tsx, lib/learn-content.ts
+   676→- 6-c today: mascot.tsx, today-tab.tsx, awards-tab.tsx(فقط FinishedHero), share-card.tsx, celebration-overlay.tsx
+   677→- 6-d stats: stats-tab.tsx, max-reps-dialog.tsx, body-log.tsx
+   678→- coordinator: page.tsx, bottom-nav.tsx, settings-sheet.tsx, تصاویر, ویجت اندروید, CI, تست
+   679→

@@ -30,6 +30,13 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((db - da) / (24 * 60 * 60 * 1000));
 }
 
+/** افزودن n روز به تاریخ YYYY-MM-DD (n منفی = گذشته) */
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 /** تبدیل ارقام لاتین به فارسی */
 export function toFa(input: number | string): string {
   const fa = "۰۱۲۳۴۵۶۷۸۹";

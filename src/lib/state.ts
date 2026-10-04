@@ -1,7 +1,16 @@
 import { db } from "@/lib/db";
 import { getPlanDay, PLAN_DAYS, PLAN, getLevel, levelProgress, computeUnlocked, AchievementId, ACHIEVEMENTS, AchievementDef } from "@/lib/plan";
-import { tehranToday, lastNDates } from "@/lib/dates";
+import { tehranToday, lastNDates, daysBetween, addDays } from "@/lib/dates";
 import type { DayType } from "@/lib/plan";
+
+/** فاصله شارژ مجدد یخ استریک (روز) */
+export const FREEZE_COOLDOWN_DAYS = 7;
+
+/** آیا یخ استریک در دسترس است؟ (۷ روز پس از مصرف قبلی شارژ می‌شود) */
+export function isFreezeAvailable(freezeUsedDate: string | null, today: string): boolean {
+  if (!freezeUsedDate) return true;
+  return daysBetween(freezeUsedDate, today) >= FREEZE_COOLDOWN_DAYS;
+}
 
 export interface PlanDayStatus {
   day: number;
@@ -38,6 +47,15 @@ export interface StateResponse {
   recentDays: { date: string; pushups: number; type: DayType | null }[];
   achievements: { id: AchievementId; unlocked: boolean; def: AchievementDef }[];
   startedAt: string;
+  // ── Streak Freeze (هر ۷ روز یک‌بار، روز جاافتاده تکی را نجات می‌دهد) ──
+  freezeAvailable: boolean;
+  freezeUsedDate: string | null;
+  /** اگر freeze مصرف شده باشد: تاریخ دوباره در دسترس قرار گرفتن (null = هم‌اکنون موجود) */
+  freezeNextAvailableDate: string | null;
+  // ── حالت تمرین آزاد پس از پایان چالش ──
+  freeMode: boolean;
+  // ── تقویم حرارتی: آخرین ۷۰ روز (۱۰ هفته) برای heatmap ──
+  calendarDays: { date: string; pushups: number }[];
 }
 
 export async function getOrCreateState() {
@@ -94,11 +112,26 @@ export async function getFullState(): Promise<StateResponse> {
     records,
   });
 
+  const freezeAvailable = isFreezeAvailable(state.freezeUsedDate, today);
+  // تاریخ شارژ مجدد فقط وقتی معنا دارد که یخ مصرف شده و هنوز در حالت سردباشد
+  const freezeNextAvailableDate =
+    state.freezeUsedDate && !freezeAvailable
+      ? addDays(state.freezeUsedDate, FREEZE_COOLDOWN_DAYS)
+      : null;
+
   return {
     today,
     checkedInToday,
     finished: state.currentDay > PLAN_DAYS,
     currentDay: state.currentDay,
+    freezeAvailable,
+    freezeUsedDate: state.freezeUsedDate,
+    freezeNextAvailableDate,
+    freeMode: state.freeMode,
+    calendarDays: lastNDates(70).map((date) => ({
+      date,
+      pushups: dateMap.get(date)?.completed ?? 0,
+    })),
     currentTask: {
       day: task.day,
       week: task.week,

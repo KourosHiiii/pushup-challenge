@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Settings as SettingsIcon,
   ShieldAlert,
+  Snowflake,
   Sun,
   Trash2,
 } from "lucide-react";
@@ -35,7 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ReminderSettings } from "./reminder-settings";
-import { toFa } from "@/lib/dates";
+import { toFa, daysBetween } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { FlameIcon } from "./illustrations";
 import type { AppStateData } from "./types";
@@ -144,6 +145,14 @@ export function SettingsSheet({
 
           <Separator />
 
+          {/* یخ استریک */}
+          <section aria-label="یخ استریک">
+            <SectionTitle icon={Snowflake}>یخ استریک</SectionTitle>
+            <FreezeCard state={state} />
+          </section>
+
+          <Separator />
+
           {/* یادآوری روزانه */}
           <section aria-label="یادآوری روزانه">
             <SectionTitle icon={BellRing}>یادآوری روزانه</SectionTitle>
@@ -165,6 +174,8 @@ export function SettingsSheet({
                 {hasProgress
                   ? `با ریست کردن، ${toFa(state.totalPushups)} شنا، استریک ${toFa(state.currentStreak)} روزه و همه نشان‌هات پاک می‌شن و از روز ۱ شروع می‌کنی.`
                   : "همه روزهای برنامه، استریک و نشان‌ها پاک می‌شن و از روز ۱ شروع می‌کنی."}
+                {" "}
+                تست‌های حداکثر شنا، وزن، عکس‌ها و حالت تمرین آزاد هم پاک می‌شن.
               </p>
 
               <AlertDialog>
@@ -280,6 +291,58 @@ function ProgressChip({
     >
       <p className="text-lg font-black tabular-nums leading-none">{value}</p>
       <p className="mt-1 text-[10px] font-bold opacity-80">{label}</p>
+    </div>
+  );
+}
+
+/** وضعیت یخ استریک — هر ۷ روز یک‌بار روز جاافتاده تکی را نجات می‌دهد */
+function FreezeCard({ state }: { state: AppStateData }) {
+  const remaining = state.freezeNextAvailableDate
+    ? Math.max(daysBetween(state.today, state.freezeNextAvailableDate), 0)
+    : 0;
+  const available = state.freezeAvailable;
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-4",
+        available
+          ? "border-sky-200 bg-gradient-to-b from-sky-50 to-cyan-50 dark:border-sky-900/50 dark:from-sky-950/40 dark:to-cyan-950/30"
+          : "border-border bg-muted/40"
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Snowflake
+            className={cn(
+              "size-4.5",
+              available ? "text-sky-500" : "text-muted-foreground/60"
+            )}
+          />
+          <p
+            className={cn(
+              "text-[12.5px] font-extrabold",
+              available ? "text-sky-700 dark:text-sky-300" : "text-foreground"
+            )}
+          >
+            {available ? "یخ استریک آماده‌ست" : "یخ استریک مصرف شده"}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1 text-[10px] font-extrabold",
+            available
+              ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
+              : "bg-muted text-muted-foreground"
+          )}
+        >
+          {available ? "فعال ❄️" : `${toFa(remaining)} روز دیگه`}
+        </span>
+      </div>
+      <p className="mt-1.5 text-[10.5px] font-medium leading-relaxed text-muted-foreground">
+        اگه فقط یه روز چک‌این رو جا بندازی، خودکار استریکت نجات پیدا می‌کنه — هر
+        ۷ روز یک‌بار، بدون نیاز به کاری از طرف تو.
+      </p>
     </div>
   );
 }

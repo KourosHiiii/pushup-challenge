@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, ListChecks, BarChart3, Trophy } from "lucide-react";
+import { Home, ListChecks, BarChart3, Trophy, GraduationCap } from "lucide-react";
 import { toFa } from "@/lib/dates";
 import type { TabId } from "./types";
 
 const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "today", label: "امروز", icon: Home },
   { id: "plan", label: "برنامه", icon: ListChecks },
+  { id: "learn", label: "یادگیری", icon: GraduationCap },
   { id: "stats", label: "آمار", icon: BarChart3 },
   { id: "awards", label: "نشان‌ها", icon: Trophy },
 ];
@@ -26,7 +27,7 @@ export function BottomNav({
       className="glass-card fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/85 pb-[env(safe-area-inset-bottom)]"
       aria-label="ناوبری اصلی"
     >
-      <div className="mx-auto grid w-full max-w-md grid-cols-4 px-2">
+      <div className="mx-auto grid w-full max-w-md grid-cols-5 px-1">
         {TABS.map((tab) => {
           const isActive = active === tab.id;
           const Icon = tab.icon;

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { Share2 } from "lucide-react";
+import { Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FlameIcon, CheckBadgeIcon, MedalIcon, TrophyIcon, DumbbellIcon } from "./illustrations";
+import { createShareFile } from "./share-card";
 import { toFa } from "@/lib/dates";
 import { ACHIEVEMENTS } from "@/lib/plan";
 import { fireCelebration, fireBigCelebration } from "@/lib/confetti";
-import type { CelebrationData } from "./types";
+import type { AppStateData, CelebrationData } from "./types";
 
 /** شمارنده متحرک */
 function CountUp({ value }: { value: number }) {
@@ -24,9 +25,12 @@ function CountUp({ value }: { value: number }) {
 export function CelebrationOverlay({
   data,
   onClose,
+  state,
 }: {
   data: CelebrationData | null;
   onClose: () => void;
+  /** اگر پاس شود، اشتراک با کارت تصویری انجام می‌شود (وایرینگ در page.tsx) */
+  state?: AppStateData | null;
 }) {
   const isRest = data?.type === "rest";
   const finished = data?.finished ?? false;
@@ -55,19 +59,52 @@ export function CelebrationOverlay({
       : `تو «پوش‌آپ چلنج» استریک ${data.newStreak} روزه‌ام رو با استراحت هوشمندانه حفظ کردم! تو هم بیا`
     : "";
 
+  const [sharing, setSharing] = useState(false);
+
   async function handleShare() {
-    if (!shareText) return;
+    if (!shareText || sharing) return;
+    const nav = navigator as Navigator & {
+      canShare?: (data?: ShareData) => boolean;
+    };
+    setSharing(true);
     try {
-      if (typeof navigator !== "undefined" && "share" in navigator) {
+      if (state) {
+        // ۱) اشتراک کارت تصویری قهرمانی
+        const file = await createShareFile(state);
+        if (nav.canShare?.({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "پوش‌آپ چلنج",
+            text: shareText,
+          } as ShareData);
+        } else if (typeof navigator.share === "function") {
+          // ۲) جایگزین: اشتراک متن ساده
+          await navigator.share({ title: "پوش‌آپ چلنج", text: shareText });
+        } else {
+          // ۳) جایگزین دسکتاپ: ذخیره کارت تصویری
+          const url = URL.createObjectURL(file);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = file.name;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+          toast.success("کارت قهرمانی ذخیره شد!");
+        }
+      } else if (typeof navigator.share === "function") {
         await navigator.share({ title: "پوش‌آپ چلنج", text: shareText });
-      } else if (typeof navigator !== "undefined" && "clipboard" in navigator) {
+      } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareText);
         toast.success("متن دستاوردت کپی شد!");
       } else {
         toast.error("اشتراک‌گذاری پشتیبانی نمی‌شه");
       }
-    } catch {
-      // کاربر لغو کرد — بی‌صدا رد شو
+    } catch (e) {
+      // لغو کاربر بی‌صدا؛ خطای واقعی با توست
+      if (e instanceof Error && e.name !== "AbortError") {
+        toast.error("اشتراک‌گذاری نشد — دوباره امتحان کن");
+      }
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -216,13 +253,18 @@ export function CelebrationOverlay({
               {finished ? "چه سفری بود!" : "ادامه بده!"}
             </motion.button>
 
-            {/* اشتراک‌گذاری دستاورد */}
+            {/* اشتراک کارت قهرمانی */}
             <button
               onClick={handleShare}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-muted/40 py-2.5 text-[12px] font-extrabold text-muted-foreground transition-colors hover:bg-muted active:scale-[0.98]"
+              disabled={sharing}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-muted/40 py-2.5 text-[12px] font-extrabold text-muted-foreground transition-colors hover:bg-muted active:scale-[0.98] disabled:opacity-60"
             >
-              <Share2 className="size-4" />
-              لافتا رو بفرست بقیه هم بیان!
+              {sharing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Share2 className="size-4" />
+              )}
+              {state ? "اشتراک کارت قهرمانی" : "لافتا رو بفرست بقیه هم بیان!"}
             </button>
           </motion.div>
         </motion.div>

@@ -3,7 +3,8 @@
 import { MedalIcon, LockIcon, TrophyIcon, SparkleIcon } from "./illustrations";
 import { toFa } from "@/lib/dates";
 import { ACHIEVEMENTS } from "@/lib/plan";
-import type { AppStateData, AchievementDef } from "./types";
+import type { AppStateData } from "./types";
+import type { AchievementDef } from "@/lib/plan";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -152,11 +153,18 @@ function AchievementCard({ unlocked, def }: { unlocked: boolean; def: Achievemen
   );
 }
 
-export function FinishedHero({ state }: { state: AppStateData }) {
+export function FinishedHero({
+  state,
+  onEnableFreeMode,
+}: {
+  state: AppStateData;
+  /** وایرینگ از page.tsx — اگر نباشد دکمه نمایش داده نمی‌شود */
+  onEnableFreeMode?: () => void;
+}) {
   return (
     <section className="flex items-center gap-3 rounded-3xl border-2 border-amber-300 bg-gradient-to-l from-amber-50 to-orange-50 p-5 dark:border-amber-700 dark:from-amber-950/50 dark:to-orange-950/40">
       <TrophyIcon className="size-14 shrink-0" />
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-base font-black text-amber-700 dark:text-amber-300">
           چالش ۳۰ روزه کامل شد!
         </p>
@@ -164,6 +172,23 @@ export function FinishedHero({ state }: { state: AppStateData }) {
           {toFa(state.totalPushups)} شنا در {toFa(state.totalWorkouts)} تمرین — از ۵ شنا در
           روز اول تا ۵۵+ در تست نهایی. تو رسماً یه قهرمانی!
         </p>
+        {state.freeMode ? (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-orange-100/80 px-2.5 py-1 text-[10px] font-extrabold text-orange-700 dark:bg-orange-950/60 dark:text-orange-300">
+            <SparkleIcon className="size-3" />
+            حالت تمرین آزاد فعاله
+          </span>
+        ) : (
+          onEnableFreeMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEnableFreeMode}
+              className="mt-2.5 w-full rounded-xl border-orange-300 bg-white/60 text-[12px] font-black text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-950/70"
+            >
+              ادامه تمرین آزاد 💪
+            </Button>
+          )
+        )}
       </div>
     </section>
   );

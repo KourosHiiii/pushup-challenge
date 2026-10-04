@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app/header";
 import { BottomNav } from "@/components/app/bottom-nav";
 import { TodayTab } from "@/components/app/today-tab";
 import { PlanTab } from "@/components/app/plan-tab";
+import { LearnTab } from "@/components/app/learn-tab";
 import { StatsTab } from "@/components/app/stats-tab";
 import { AwardsTab, FinishedHero } from "@/components/app/awards-tab";
 import { CelebrationOverlay } from "@/components/app/celebration-overlay";
@@ -25,7 +26,9 @@ import {
   localGetFullState,
   localCheckin,
   localReset,
+  localSetFreeMode,
 } from "@/lib/offline-state";
+import { updateWidgetData } from "@/lib/widget";
 
 /** در حالت اپ اندروید (Capacitor) همه‌چیز آفلاین با localStorage اجرا می‌شود */
 function isNativeMode(): boolean {
@@ -75,6 +78,14 @@ export default function Home() {
           setDialogOpen(false);
           setState(result.state);
           setCelebration(result.celebration as CelebrationData);
+          // به‌روزرسانی ویجت صفحه اصلی اندروید
+          void updateWidgetData({
+            streak: result.state.currentStreak,
+            day: Math.min(result.state.currentDay, 30),
+            dayTotal: 30,
+            total: result.state.totalPushups,
+            label: result.state.checkedInToday ? "امروز ثبت شد ✓" : "منتظرتم!",
+          });
           if (typeof navigator !== "undefined" && "vibrate" in navigator) {
             navigator.vibrate([110, 60, 110, 60, 180]);
           }
@@ -113,6 +124,13 @@ export default function Home() {
         setDialogOpen(false);
         setState(data.state as AppStateData);
         setCelebration(data.celebration as CelebrationData);
+        // ❄️ یخ استریک مصرف شد؟
+        if (data.celebration?.freezeUsed) {
+          toast("❄️ یخ استریک فعال شد!", {
+            description: "روز جاافتاده‌ات نجات پیدا کرد و استریکت نشکست",
+            duration: 6000,
+          });
+        }
         // هپتیک موفقیت (اندروید/مرورگرهای پشتیبان)
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate([110, 60, 110, 60, 180]);
@@ -140,6 +158,31 @@ export default function Home() {
     },
     []
   );
+
+  /** فعال‌سازی حالت تمرین آزاد پس از پایان چالش */
+  const handleEnableFreeMode = useCallback(async () => {
+    if (isNativeMode()) {
+      const ok = localSetFreeMode(true);
+      if (ok) {
+        setState(localGetFullState());
+        toast.success("حالت تمرین آزاد فعال شد 💪");
+      }
+      return;
+    }
+    try {
+      const res = await fetch("/api/free-mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setState(data.state as AppStateData);
+      toast.success("حالت تمرین آزاد فعال شد 💪");
+    } catch {
+      toast.error("فعال‌سازی نشد — دوباره امتحان کن");
+    }
+  }, []);
 
   const handleReset = useCallback(async () => {
     // حالت آفلاین APK
@@ -180,17 +223,25 @@ export default function Home() {
           <>
             {tab === "today" && (
               <>
-                {state.finished && <FinishedHero state={state} />}
+                {state.finished && (
+                  <FinishedHero state={state} onEnableFreeMode={handleEnableFreeMode} />
+                )}
                 <TodayTab
                   state={state}
-                  onCheckin={() => {
-                    if (!state.finished) setDialogOpen(true);
+                  onCheckin={(completed) => {
+                    if (state.finished && state.freeMode) {
+                      void handleCheckin(completed);
+                    } else if (!state.finished) {
+                      setDialogOpen(true);
+                    }
                   }}
                   onReset={handleReset}
+                  onEnableFreeMode={handleEnableFreeMode}
                 />
               </>
             )}
             {tab === "plan" && <PlanTab state={state} />}
+            {tab === "learn" && <LearnTab />}
             {tab === "stats" && <StatsTab state={state} />}
             {tab === "awards" && <AwardsTab state={state} onReset={handleReset} />}
           </>
@@ -212,7 +263,11 @@ export default function Home() {
         />
       )}
 
-      <CelebrationOverlay data={celebration} onClose={() => setCelebration(null)} />
+      <CelebrationOverlay
+        data={celebration}
+        onClose={() => setCelebration(null)}
+        state={state}
+      />
     </div>
   );
 }

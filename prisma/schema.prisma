@@ -26,11 +26,18 @@ model AppState {
   reminderTime     String    @default("20:00")
   // YYYY-MM-DD of last reminder push sent (avoid duplicates)
   lastReminderSentDate String?
+  // YYYY-MM-DD (Tehran) when a streak freeze was last consumed (auto once per 7 days)
+  freezeUsedDate   String?
+  // Free-training mode after finishing the 30-day challenge
+  freeMode         Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   records          DayRecord[]
   pushSubscriptions PushSubscription[]
+  maxRepTests      MaxRepTest[]
+  weightEntries    WeightEntry[]
+  bodyPhotos       BodyPhoto[]
 }
 
 // Web Push subscriptions (browser/PWA users)
@@ -48,11 +55,11 @@ model PushSubscription {
 // One record per completed plan day
 model DayRecord {
   id          String   @id @default(cuid())
-  // Plan day number 1..30 (unique)
+  // Plan day number 1..30 (unique). In free mode: 31, 32, ... (sequential)
   dayNumber   Int      @unique
-  // "workout" | "rest" | "final"
+  // "workout" | "rest" | "final" | "free"
   type        String
-  // Planned target for the day (sum of sets). For final test: 55
+  // Planned target for the day (sum of sets). For final test: 55. Free mode: 0
   target      Int
   // Actual push-ups done (for rest days: 0)
   completed   Int
@@ -62,4 +69,41 @@ model DayRecord {
 
   stateId     String
   state       AppState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+}
+
+// Max-reps test history ("how many can you do in one set?")
+model MaxRepTest {
+  id        String   @id @default(cuid())
+  count     Int
+  // YYYY-MM-DD (Asia/Tehran)
+  date      String
+  createdAt DateTime @default(now())
+
+  stateId   String   @default("main")
+  state     AppState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+}
+
+// Daily body-weight log (one weigh-in per day)
+model WeightEntry {
+  id        String   @id @default(cuid())
+  // YYYY-MM-DD (Asia/Tehran), unique — re-weighing same day overwrites
+  date      String   @unique
+  kg        Float
+  createdAt DateTime @default(now())
+
+  stateId   String   @default("main")
+  state     AppState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+}
+
+// Before/after progress photos (compressed base64 data URLs)
+model BodyPhoto {
+  id        String   @id @default(cuid())
+  // "before" | "after" (unique slot)
+  slot      String   @unique
+  image     String
+  date      String
+  createdAt DateTime @default(now())
+
+  stateId   String   @default("main")
+  state     AppState @relation(fields: [stateId], references: [id], onDelete: Cascade)
 }

@@ -1,0 +1,694 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useMemo, useState } from "react";
+     4→import { motion } from "framer-motion";
+     5→import Image from "next/image";
+     6→import {
+     7→  Lightbulb,
+     8→  Info,
+     9→  RotateCcw,
+    10→  Minus,
+    11→  Plus,
+    12→  Loader2,
+    13→  Snowflake,
+    14→} from "lucide-react";
+    15→import {
+    16→  RestMoonIcon,
+    17→  FlameIcon,
+    18→  CheckBadgeIcon,
+    19→  DumbbellIcon,
+    20→  TrophyIcon,
+    21→} from "./illustrations";
+    22→import { Mascot, getMascotStage, type MascotMood } from "./mascot";
+    23→import { RestTimer } from "./rest-timer";
+    24→import { FormGuide } from "./form-guide";
+    25→import { faDate, faWeekdayShort, toFa, daysBetween } from "@/lib/dates";
+    26→import {
+    27→  Dialog,
+    28→  DialogContent,
+    29→  DialogDescription,
+    30→  DialogHeader,
+    31→  DialogTitle,
+    32→} from "@/components/ui/dialog";
+    33→import type { AppStateData } from "./types";
+    34→
+    35→interface TodayTabProps {
+    36→  state: AppStateData;
+    37→  /** completed برای حالت تمرین آزاد (چک‌این با تعداد دلخواه) */
+    38→  onCheckin: (completed?: number) => void;
+    39→  onReset: () => void;
+    40→  /** فعال‌سازی حالت تمرین آزاد پس از پایان چالش — وایرینگ در page.tsx */
+    41→  onEnableFreeMode?: () => void;
+    42→}
+    43→
+    44→/** سلام زمان‌محور بر اساس ساعت تهران — محاسبه در اولین رندر (تهران-محور روی سرور و کلاینت یکسانه) */
+    45→function computeGreeting(): string {
+    46→  try {
+    47→    const hour = Number(
+    48→      new Intl.DateTimeFormat("en-GB", {
+    49→        timeZone: "Asia/Tehran",
+    50→        hour: "numeric",
+    51→        hour12: false,
+    52→      }).format(new Date())
+    53→    );
+    54→    if (hour < 5) return "شب بخیر قهرمان!";
+    55→    if (hour < 12) return "صبح بخیر قهرمان!";
+    56→    if (hour < 17) return "وقت بخیر قهرمان!";
+    57→    if (hour < 21) return "عصر بخیر قهرمان!";
+    58→    return "شب بخیر قهرمان!";
+    59→  } catch {
+    60→    return "سلام قهرمان!";
+    61→  }
+    62→}
+    63→
+    64→function useGreeting() {
+    65→  return useState(computeGreeting)[0];
+    66→}
+    67→
+    68→/** حالت چهره ماسکوت بر اساس وضعیت امروز */
+    69→function mascotMood(state: AppStateData): MascotMood {
+    70→  if (state.checkedInToday) return "happy";
+    71→  if (state.currentStreak === 0 && state.totalWorkouts > 0) return "sad";
+    72→  return "neutral";
+    73→}
+    74→
+    75→/** چیپ مرحله شعله + روزهای باقی‌مانده تا مرحله بعد */
+    76→function MascotStageChip({ state }: { state: AppStateData }) {
+    77→  const ms = getMascotStage(state.currentStreak);
+    78→  return (
+    79→    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+    80→      <span className="inline-flex items-center gap-1 rounded-full bg-orange-100/80 px-2.5 py-1 text-[10px] font-extrabold text-orange-700 dark:bg-orange-950/60 dark:text-orange-300">
+    81→        <FlameIcon className="size-3" />
+    82→        مرحله شعله: {ms.name}
+    83→      </span>
+    84→      {ms.nextAt !== null && (
+    85→        <span className="text-[10px] font-medium text-muted-foreground">
+    86→          {toFa(Math.max(0, ms.nextAt - state.currentStreak))} روز تا{" "}
+    87→          {getMascotStage(ms.nextAt).name}
+    88→        </span>
+    89→      )}
+    90→    </div>
+    91→  );
+    92→}
+    93→
+    94→/** چیپ یخ استریک — فقط برای کاربرانی که تمرین ثبت کرده‌اند */
+    95→function FreezeChip({ state }: { state: AppStateData }) {
+    96→  if (state.totalWorkouts === 0) return null;
+    97→  if (state.freezeAvailable) {
+    98→    return (
+    99→      <div className="flex items-center gap-1.5 self-start rounded-full border border-sky-200/80 bg-sky-50 px-3 py-1.5 dark:border-sky-900/60 dark:bg-sky-950/40">
+   100→        <Snowflake className="size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+   101→        <span className="text-[10.5px] font-extrabold text-sky-700 dark:text-sky-300">
+   102→          یخ استریک آماده — اگه یه روز جا بمونی نجاتت می‌ده
+   103→        </span>
+   104→      </div>
+   105→    );
+   106→  }
+   107→  const remaining = state.freezeNextAvailableDate
+   108→    ? daysBetween(state.today, state.freezeNextAvailableDate)
+   109→    : 0;
+   110→  if (state.freezeUsedDate && remaining > 0 && remaining <= 7) {
+   111→    return (
+   112→      <div className="flex items-center gap-1.5 self-start rounded-full border border-border bg-muted/50 px-3 py-1.5">
+   113→        <Snowflake className="size-3.5 shrink-0 text-muted-foreground/70" />
+   114→        <span className="text-[10.5px] font-bold text-muted-foreground">
+   115→          یخ استریک مصرف شده — از {toFa(remaining)} روز دیگه دوباره شارژ می‌شه
+   116→        </span>
+   117→      </div>
+   118→    );
+   119→  }
+   120→  return null;
+   121→}
+   122→
+   123→export function TodayTab({ state, onCheckin, onReset, onEnableFreeMode }: TodayTabProps) {
+   124→  const task = state.currentTask;
+   125→  const isRest = task.type === "rest";
+   126→  const isFinal = task.type === "final";
+   127→  const greeting = useGreeting();
+   128→  const isNewUser = !state.planStatus.some((d) => d.status === "done");
+   129→
+   130→  // ── حالت اتمام چالش: کارت قهرمانی + حالت تمرین آزاد ──
+   131→  if (state.finished) {
+   132→    return (
+   133→      <div className="flex flex-col gap-4">
+   134→        <FinishedHeader state={state} />
+   135→        {/* حالت تمرین آزاد فعال — کارت ثبت تمرین روزانه */}
+   136→        {state.freeMode && <FreeModeCard state={state} onCheckin={onCheckin} />}
+   137→        <motion.section
+   138→          initial={{ opacity: 0, scale: 0.96 }}
+   139→          animate={{ opacity: 1, scale: 1 }}
+   140→          transition={{ type: "spring", stiffness: 200, damping: 22 }}
+   141→          aria-label="چالش کامل شد"
+   142→          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 p-6 text-center text-white shadow-xl shadow-orange-500/20"
+   143→        >
+   144→          <div className="pointer-events-none absolute -left-10 -top-10 size-40 rounded-full bg-white/10" />
+   145→          <div className="pointer-events-none absolute -bottom-14 -right-8 size-48 rounded-full bg-white/10" />
+   146→          <TrophyIcon className="animate-flame mx-auto size-28 drop-shadow-lg" />
+   147→          <h2 className="mt-2 text-2xl font-black">تو قهرمان ۳۰ روز شدی!</h2>
+   148→          <p className="mt-1 text-[12px] font-bold text-white/85">
+   149→            از ۵ شنا در روز اول تا {toFa(state.totalPushups)} شنا مجموع — مسیر کامل رو
+   150→            رفتی
+   151→          </p>
+   152→          <div className="mt-4 grid grid-cols-3 gap-2">
+   153→            <VictoryStat value={toFa(state.totalPushups)} label="شنا مجموع" />
+   154→            <VictoryStat value={toFa(state.totalWorkouts)} label="تمرین" />
+   155→            <VictoryStat value={toFa(state.bestStreak)} label="بهترین استریک" />
+   156→          </div>
+   157→          <button
+   158→            onClick={onReset}
+   159→            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-white/40 bg-white/10 py-3.5 text-[14px] font-black backdrop-blur-sm transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+   160→          >
+   161→            <RotateCcw className="size-4" />
+   162→            شروع دوباره چالش
+   163→          </button>
+   164→        </motion.section>
+   165→        {/* پیشنهاد ادامه با حالت تمرین آزاد — فقط وقتی وایر شده و هنوز فعاله */}
+   166→        {!state.freeMode && onEnableFreeMode && (
+   167→          <motion.section
+   168→            initial={{ opacity: 0, y: 10 }}
+   169→            animate={{ opacity: 1, y: 0 }}
+   170→            aria-label="ادامه تمرین"
+   171→            className="rounded-3xl border border-border bg-card p-5 text-center"
+   172→          >
+   173→            <p className="text-[14px] font-extrabold">چالش تموم شد! می‌خوای ادامه بدی؟</p>
+   174→            <p className="mt-1 text-[11.5px] font-medium leading-relaxed text-muted-foreground">
+   175→              با حالت تمرین آزاد هر روز می‌تونی شنا ثبت کنی و استریکت رو زنده نگه داری.
+   176→            </p>
+   177→            <motion.button
+   178→              whileTap={{ scale: 0.97 }}
+   179→              onClick={onEnableFreeMode}
+   180→              className="mt-3 w-full rounded-2xl border-2 border-orange-300 bg-orange-50 py-3 text-[13.5px] font-black text-orange-600 transition-colors hover:bg-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-400 dark:hover:bg-orange-950/70"
+   181→            >
+   182→              شروع حالت تمرین آزاد
+   183→            </motion.button>
+   184→          </motion.section>
+   185→        )}
+   186→        <WeekStrip state={state} />
+   187→        <QuickStats state={state} />
+   188→      </div>
+   189→    );
+   190→  }
+   191→
+   192→  return (
+   193→    <div className="flex flex-col gap-4">
+   194→      {/* نوار تاریخ و شماره روز + ماسکوت شعله */}
+   195→      <div className="flex items-start justify-between gap-2 px-1">
+   196→        <div className="min-w-0 flex-1">
+   197→          <h1 className="text-lg font-extrabold">
+   198→            {isRest ? "امروز ریکاوریه" : greeting}
+   199→          </h1>
+   200→          <p className="text-xs font-medium text-muted-foreground">{faDate(state.today)}</p>
+   201→          <MascotStageChip state={state} />
+   202→        </div>
+   203→        <div className="flex shrink-0 items-center gap-1">
+   204→          <Mascot
+   205→            stage={getMascotStage(state.currentStreak).stage}
+   206→            mood={mascotMood(state)}
+   207→            className="size-14"
+   208→          />
+   209→          <span className="self-start rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold text-secondary-foreground">
+   210→            روز {toFa(task.day)} از {toFa(30)}
+   211→          </span>
+   212→        </div>
+   213→      </div>
+   214→
+   215→      {/* چیپ یخ استریک — بعد از اولین تمرین */}
+   216→      <FreezeChip state={state} />
+   217→
+   218→      {/* کارت خوش‌آمد برای کاربر تازه‌کار */}
+   219→      {isNewUser && (
+   220→        <motion.section
+   221→          initial={{ opacity: 0, y: 10 }}
+   222→          animate={{ opacity: 1, y: 0 }}
+   223→          aria-label="راهنمای شروع"
+   224→          className="rounded-3xl border border-orange-200 bg-gradient-to-l from-orange-50 to-amber-50 p-4 dark:border-orange-900/60 dark:from-orange-950/40 dark:to-amber-950/30"
+   225→        >
+   226→          <p className="mb-3 text-[13px] font-black">چالش چطوری کار می‌کنه؟</p>
+   227→          <ol className="space-y-2.5">
+   228→            {[
+   229→              "هر روز یه تمرین کوچیک بر اساس برنامه علمی داری",
+   230→              "بعد از تمرین، تیکش بزن و استریک روزانه بگیر",
+   231→              "روزهای استراحت رو هم تایید کن تا استریک نشکنه",
+   232→            ].map((s, i) => (
+   233→              <li key={i} className="flex items-center gap-2.5">
+   234→                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-orange-500 text-[11px] font-black text-white shadow-sm shadow-orange-500/30">
+   235→                  {toFa(i + 1)}
+   236→                </span>
+   237→                <span className="text-[11.5px] font-medium leading-relaxed">{s}</span>
+   238→              </li>
+   239→            ))}
+   240→          </ol>
+   241→        </motion.section>
+   242→      )}
+   243→
+   244→      {/* بنر موفقیت امروز */}
+   245→      {state.checkedInToday && (
+   246→        <motion.div
+   247→          initial={{ opacity: 0, y: -8 }}
+   248→          animate={{ opacity: 1, y: 0 }}
+   249→          className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40"
+   250→        >
+   251→          <CheckBadgeIcon className="size-6 shrink-0" />
+   252→          <div className="text-xs leading-relaxed">
+   253→            <p className="font-extrabold text-emerald-800 dark:text-emerald-300">
+   254→              استریک امروز قفل شد!
+   255→            </p>
+   256→            <p className="text-emerald-700/80 dark:text-emerald-400/80">
+   257→              اگر می‌تونی، روز بعدی رو هم امروز بزن — ولی به بدنت رحم کن.
+   258→            </p>
+   259→          </div>
+   260→        </motion.div>
+   261→      )}
+   262→
+   263→      {/* کارت اصلی روز */}
+   264→      <motion.section
+   265→        initial={{ opacity: 0, scale: 0.97 }}
+   266→        animate={{ opacity: 1, scale: 1 }}
+   267→        transition={{ type: "spring", stiffness: 200, damping: 24 }}
+   268→        aria-label="تمرین امروز"
+   269→        className={`relative overflow-hidden rounded-3xl shadow-xl shadow-orange-500/10 ${
+   270→          isRest
+   271→            ? "bg-gradient-to-br from-emerald-400 to-teal-600"
+   272→            : isFinal
+   273→              ? "bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500"
+   274→              : "bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600"
+   275→        }`}
+   276→      >
+   277→        {/* الگوی دایره‌ای پس‌زمینه */}
+   278→        <div className="pointer-events-none absolute -left-10 -top-10 size-40 rounded-full bg-white/10" />
+   279→        <div className="pointer-events-none absolute -bottom-14 -right-8 size-48 rounded-full bg-white/10" />
+   280→
+   281→        <div className="relative px-5 pb-5 pt-4 text-white">
+   282→          {/* عکس واقعی تمرین */}
+   283→          <div className="relative mx-auto -mt-1 mb-2 w-full overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/25">
+   284→            <Image
+   285→              src={
+   286→                isRest
+   287→                  ? "/images/rest-hero.png"
+   288→                  : isFinal
+   289→                    ? "/images/final-hero.png"
+   290→                    : "/images/pushup-hero.png"
+   291→              }
+   292→              alt={
+   293→                isRest
+   294→                  ? "عکس استراحت و ریکاوری ورزشکار روی مت یوگا"
+   295→                  : isFinal
+   296→                    ? "عکس تمرین نهایی با نورپردازی طلایی و هیجان قهرمانی"
+   297→                    : "عکس ورزشکار در حال انجام شنا سوئدی با فرم صحیح"
+   298→              }
+   299→              width={1152}
+   300→              height={864}
+   301→              priority
+   302→              className="h-44 w-full object-cover"
+   303→            />
+   304→            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+   305→            <span className="absolute bottom-2 right-2 rounded-full bg-black/45 px-2.5 py-1 text-[9.5px] font-extrabold text-white backdrop-blur-sm">
+   306→              {isRest ? "ریکاوری فعال" : isFinal ? "روز آخر — همه یا هیچ!" : "فرم صحیح: بدن صاف مثل خط"}
+   307→            </span>
+   308→          </div>
+   309→
+   310→          <div className="text-center">
+   311→            <p className="text-[13px] font-bold text-white/85">{task.title}</p>
+   312→            {isRest ? (
+   313→              <>
+   314→                <p className="mt-1 text-4xl font-black tracking-tight">استراحت</p>
+   315→                <p className="mt-1 text-sm font-medium text-white/85">
+   316→                  عضله‌ها امروز دارن قوی می‌شن
+   317→                </p>
+   318→              </>
+   319→            ) : (
+   320→              <>
+   321→                <div className="mt-1 flex items-end justify-center gap-2">
+   322→                  <span className="text-6xl font-black leading-none tracking-tight drop-shadow-sm">
+   323→                    {toFa(task.target)}
+   324→                  </span>
+   325→                  <span className="pb-1.5 text-sm font-extrabold text-white/90">شنا سوئدی</span>
+   326→                </div>
+   327→                {task.sets.length > 1 && (
+   328→                  <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+   329→                    {task.sets.map((s, i) => (
+   330→                      <span
+   331→                        key={i}
+   332→                        className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold backdrop-blur-sm"
+   333→                      >
+   334→                        ست {toFa(i + 1)}: {toFa(s)}
+   335→                      </span>
+   336→                    ))}
+   337→                    <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold backdrop-blur-sm">
+   338→                      ۶۰-۹۰ ثانیه استراحت بین ست‌ها
+   339→                    </span>
+   340→                  </div>
+   341→                )}
+   342→                {isFinal && (
+   343→                  <p className="mt-2 text-[12px] font-bold text-amber-100">
+   344→                    هدف: ۵۵ شنا با فرم تمیز — رکوردت رو بشکن!
+   345→                  </p>
+   346→                )}
+   347→              </>
+   348→            )}
+   349→          </div>
+   350→
+   351→          {/* نکته آموزشی */}
+   352→          <div className="mt-4 flex items-start gap-2 rounded-2xl bg-black/15 px-3.5 py-2.5 backdrop-blur-sm">
+   353→            <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-200" />
+   354→            <p className="text-[11.5px] font-medium leading-relaxed text-white/95">{task.tip}</p>
+   355→          </div>
+   356→
+   357→          {/* دکمه اصلی */}
+   358→          <motion.button
+   359→            whileTap={{ scale: 0.96 }}
+   360→            onClick={() => onCheckin()}
+   361→            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-[15px] font-black text-orange-600 shadow-lg transition-colors hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 dark:text-orange-600"
+   362→          >
+   363→            {isRest ? (
+   364→              "استراحت امروز انجام شد"
+   365→            ) : isFinal ? (
+   366→              <>
+   367→                <FlameIcon className="size-5" />
+   368→                تست نهایی رو ثبت کن
+   369→              </>
+   370→            ) : (
+   371→              "تمرین رو انجام دادم!"
+   372→            )}
+   373→          </motion.button>
+   374→          {state.checkedInToday && (
+   375→            <p className="mt-2 text-center text-[10.5px] font-bold text-white/75">
+   376→              استریک امروزت امنه — این تمرینِ اضافه‌ست
+   377→            </p>
+   378→          )}
+   379→        </div>
+   380→      </motion.section>
+   381→
+   382→      {/* تایمر استراحت — فقط روزهای تمرین */}
+   383→      {!isRest && <RestTimer />}
+   384→
+   385→      {/* نوار هفتگی — ۷ روز اخیر */}
+   386→      <WeekStrip state={state} />
+   387→
+   388→      {/* خلاصه سریع */}
+   389→      <QuickStats state={state} />
+   390→
+   391→      {/* راهنمای فرم صحیح */}
+   392→      <FormGuide />
+   393→
+   394→      {/* راهنمای کوچک */}
+   395→      <div className="mb-2 flex items-start gap-2 rounded-2xl bg-muted/60 px-4 py-3">
+   396→        <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+   397→        <p className="text-[11px] leading-relaxed text-muted-foreground">
+   398→          برنامه بر اساس اصل پیش‌بار تدریجی طراحی شده: هر روز کمی سخت‌تر از دیروز و هر
+   399→          هفته یک روز استراحت. ثبات مهم‌تر از شدت است — مثل دولینگو، هر روز بیا!
+   400→        </p>
+   401→      </div>
+   402→    </div>
+   403→  );
+   404→}
+   405→
+   406→function FinishedHeader({ state }: { state: AppStateData }) {
+   407→  return (
+   408→    <div className="flex items-start justify-between gap-2 px-1">
+   409→      <div className="min-w-0 flex-1">
+   410→        <h1 className="text-lg font-extrabold">قهرمان برگشتی!</h1>
+   411→        <p className="text-xs font-medium text-muted-foreground">{faDate(state.today)}</p>
+   412→        <MascotStageChip state={state} />
+   413→      </div>
+   414→      <div className="flex shrink-0 items-center gap-1">
+   415→        <Mascot
+   416→          stage={getMascotStage(state.currentStreak).stage}
+   417→          mood={mascotMood(state)}
+   418→          className="size-14"
+   419→        />
+   420→        <span className="self-start rounded-full bg-amber-100 px-3 py-1.5 text-xs font-extrabold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+   421→          ۳۰ از ۳۰ روز
+   422→        </span>
+   423→      </div>
+   424→    </div>
+   425→  );
+   426→}
+   427→
+   428→/** کارت تمرین آزاد پس از پایان چالش — دیالوگ خودکفا با استپر */
+   429→function FreeModeCard({
+   430→  state,
+   431→  onCheckin,
+   432→}: {
+   433→  state: AppStateData;
+   434→  onCheckin: (completed?: number) => void;
+   435→}) {
+   436→  const [open, setOpen] = useState(false);
+   437→  // آخرین تعداد ثبت‌شده به‌عنوان پیش‌فرض دیالوگ
+   438→  const lastDone = useMemo(() => {
+   439→    const found = [...state.recentDays].reverse().find((d) => d.pushups > 0);
+   440→    return found?.pushups ?? Math.max(state.currentTask.target, 10);
+   441→  }, [state.recentDays, state.currentTask.target]);
+   442→
+   443→  return (
+   444→    <motion.section
+   445→      initial={{ opacity: 0, y: 10 }}
+   446→      animate={{ opacity: 1, y: 0 }}
+   447→      aria-label="تمرین آزاد"
+   448→      className="rounded-3xl border-2 border-orange-300/70 bg-gradient-to-l from-orange-50 to-amber-50 p-5 dark:border-orange-800 dark:from-orange-950/50 dark:to-amber-950/40"
+   449→    >
+   450→      <div className="flex items-start justify-between gap-3">
+   451→        <div className="min-w-0">
+   452→          <p className="text-[15px] font-black">تمرین آزاد 💪</p>
+   453→          <p className="mt-1 text-[11.5px] font-medium leading-relaxed text-muted-foreground">
+   454→            هر روز هر تعداد که تونستی بزن و استریکت رو حفظ کن
+   455→          </p>
+   456→        </div>
+   457→        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-orange-100 dark:bg-orange-950">
+   458→          <DumbbellIcon className="size-6 text-orange-600 dark:text-orange-400" />
+   459→        </div>
+   460→      </div>
+   461→      <div className="mt-3 flex items-center gap-2 rounded-2xl bg-orange-100/60 px-3 py-2 dark:bg-orange-900/30">
+   462→        <FlameIcon className="size-4 shrink-0 text-orange-500" />
+   463→        <p className="text-[11px] font-bold text-orange-700 dark:text-orange-300">
+   464→          استریک فعلی: {toFa(state.currentStreak)} روز
+   465→          {state.checkedInToday ? " — امروز ثبت شد" : " — امروز هنوز ثبت نشده"}
+   466→        </p>
+   467→      </div>
+   468→      <motion.button
+   469→        whileTap={{ scale: 0.97 }}
+   470→        onClick={() => setOpen(true)}
+   471→        className="mt-3 w-full rounded-2xl bg-gradient-to-l from-orange-500 to-orange-600 py-3.5 text-[14px] font-black text-white shadow-lg shadow-orange-500/25 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+   472→      >
+   473→        ثبت تمرین امروز
+   474→      </motion.button>
+   475→      <FreeModeCheckinDialog
+   476→        open={open}
+   477→        onOpenChange={setOpen}
+   478→        lastDone={lastDone}
+   479→        onSubmit={(n) => onCheckin(n)}
+   480→      />
+   481→    </motion.section>
+   482→  );
+   483→}
+   484→
+   485→/** دیالوگ ثبت تمرین آزاد — الگوی دیالوگ چک‌این با بازه ۱ تا ۱۰۰۰ */
+   486→function FreeModeCheckinDialog({
+   487→  open,
+   488→  onOpenChange,
+   489→  lastDone,
+   490→  onSubmit,
+   491→}: {
+   492→  open: boolean;
+   493→  onOpenChange: (v: boolean) => void;
+   494→  lastDone: number;
+   495→  onSubmit: (completed: number) => void;
+   496→}) {
+   497→  const [count, setCount] = useState(lastDone);
+   498→  const [loading, setLoading] = useState(false);
+   499→
+   500→  useEffect(() => {
+   501→    if (open) {
+   502→      setCount(Math.min(1000, Math.max(1, lastDone)));
+   503→      setLoading(false);
+   504→    }
+   505→  }, [open, lastDone]);
+   506→
+   507→  const clamp = (v: number) => Math.min(1000, Math.max(1, Math.round(v)));
+   508→
+   509→  const submit = async () => {
+   510→    setLoading(true);
+   511→    try {
+   512→      onSubmit(clamp(count));
+   513→      onOpenChange(false);
+   514→    } finally {
+   515→      setLoading(false);
+   516→    }
+   517→  };
+   518→
+   519→  return (
+   520→    <Dialog open={open} onOpenChange={onOpenChange}>
+   521→      <DialogContent className="max-w-[340px] rounded-[28px] p-5" dir="rtl">
+   522→        <DialogHeader className="items-center text-center">
+   523→          <DialogTitle className="text-base">ثبت تمرین آزاد</DialogTitle>
+   524→          <DialogDescription className="text-[11.5px] leading-relaxed">
+   525→            چند تا شنا زدی؟ هر عددی ثبت کنی استریک امروزت قفل می‌شه!
+   526→          </DialogDescription>
+   527→        </DialogHeader>
+   528→
+   529→        {/* شمارنده */}
+   530→        <div className="mt-1 flex items-center justify-center gap-4">
+   531→          <button
+   532→            onClick={() => setCount((c) => clamp(c - 1))}
+   533→            className="flex size-11 items-center justify-center rounded-2xl border border-border bg-muted/50 transition-colors hover:bg-muted active:scale-95"
+   534→            aria-label="یکی کمتر"
+   535→          >
+   536→            <Minus className="size-4" />
+   537→          </button>
+   538→          <div className="flex min-w-[110px] flex-col items-center rounded-2xl bg-orange-50 px-4 py-2.5 dark:bg-orange-950/50">
+   539→            <span className="text-4xl font-black tabular-nums leading-none text-orange-600 dark:text-orange-400">
+   540→              {toFa(count)}
+   541→            </span>
+   542→            <span className="mt-1 text-[9.5px] font-bold text-muted-foreground">شنا سوئدی</span>
+   543→          </div>
+   544→          <button
+   545→            onClick={() => setCount((c) => clamp(c + 1))}
+   546→            className="flex size-11 items-center justify-center rounded-2xl border border-border bg-muted/50 transition-colors hover:bg-muted active:scale-95"
+   547→            aria-label="یکی بیشتر"
+   548→          >
+   549→            <Plus className="size-4" />
+   550→          </button>
+   551→        </div>
+   552→
+   553→        {/* میانبرهای سریع */}
+   554→        <div className="mt-2 flex items-center justify-center gap-2">
+   555→          {[-5, -1, 1, 5, 10].map((v) => (
+   556→            <button
+   557→              key={v}
+   558→              onClick={() => setCount((c) => clamp(c + v))}
+   559→              className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-[11px] font-extrabold text-orange-600 transition-colors hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/60 dark:text-orange-400"
+   560→            >
+   561→              {v > 0 ? `+${toFa(v)}` : toFa(v)}
+   562→            </button>
+   563→          ))}
+   564→        </div>
+   565→
+   566→        <button
+   567→          onClick={submit}
+   568→          disabled={loading}
+   569→          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-orange-500 to-orange-600 py-3.5 text-[14px] font-black text-white shadow-lg shadow-orange-500/25 transition-transform active:scale-[0.98] disabled:opacity-60"
+   570→        >
+   571→          {loading ? <Loader2 className="size-4 animate-spin" /> : null}
+   572→          ثبت تمرین آزاد
+   573→        </button>
+   574→      </DialogContent>
+   575→    </Dialog>
+   576→  );
+   577→}
+   578→
+   579→function VictoryStat({ value, label }: { value: string; label: string }) {
+   580→  return (
+   581→    <div className="rounded-2xl bg-black/15 px-2 py-2.5 backdrop-blur-sm">
+   582→      <p className="text-lg font-black tabular-nums leading-none">{value}</p>
+   583→      <p className="mt-1 text-[9.5px] font-bold text-white/80">{label}</p>
+   584→    </div>
+   585→  );
+   586→}
+   587→
+   588→function WeekStrip({ state }: { state: AppStateData }) {
+   589→  return (
+   590→    <section aria-label="هفته اخیر" className="rounded-3xl border border-border bg-card p-4">
+   591→      <div className="mb-3 flex items-center justify-between px-1">
+   592→        <h2 className="text-sm font-extrabold">۷ روز اخیر</h2>
+   593→        <span className="text-[10.5px] font-bold text-muted-foreground">هفته اخیر → امروز</span>
+   594→      </div>
+   595→      <div className="flex items-start justify-between px-1">
+   596→        {state.recentDays.map((d, i) => {
+   597→          const isToday = d.date === state.today;
+   598→          const doneWorkout = d.type !== null && d.type !== "rest";
+   599→          const doneRest = d.type === "rest";
+   600→          return (
+   601→            <div key={d.date} className="flex flex-col items-center gap-1.5">
+   602→              <div
+   603→                className={`flex size-9 items-center justify-center rounded-full transition-all ${
+   604→                  doneWorkout
+   605→                    ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md shadow-orange-500/25"
+   606→                    : doneRest
+   607→                      ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md shadow-emerald-500/25"
+   608→                      : isToday
+   609→                        ? "animate-ring-pulse border-2 border-dashed border-orange-400 bg-orange-50/50 dark:bg-orange-950/30"
+   610→                        : "border-2 border-dashed border-border bg-transparent"
+   611→                }`}
+   612→                title={
+   613→                  doneWorkout
+   614→                    ? `${toFa(d.pushups)} شنا`
+   615→                    : doneRest
+   616→                      ? "استراحت"
+   617→                      : isToday
+   618→                        ? "امروز"
+   619→                        : "از دست رفت"
+   620→                }
+   621→              >
+   622→                {doneWorkout ? (
+   623→                  <DumbbellIcon className="size-4 text-white" />
+   624→                ) : doneRest ? (
+   625→                  <RestMoonIcon className="size-4 [&_path]:fill-white [&_path]:stroke-none" />
+   626→                ) : (
+   627→                  <span
+   628→                    className={`text-[10px] font-black ${isToday ? "text-orange-500" : "text-muted-foreground/50"}`}
+   629→                  >
+   630→                    {faWeekdayShort(d.date)}
+   631→                  </span>
+   632→                )}
+   633→              </div>
+   634→              <span
+   635→                className={`text-[9.5px] font-bold ${
+   636→                  isToday ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground/70"
+   637→                }`}
+   638→              >
+   639→                {i === state.recentDays.length - 1 ? "امروز" : faWeekdayShort(d.date)}
+   640→              </span>
+   641→            </div>
+   642→          );
+   643→        })}
+   644→      </div>
+   645→    </section>
+   646→  );
+   647→}
+   648→
+   649→function QuickStats({ state }: { state: AppStateData }) {
+   650→  return (
+   651→    <section aria-label="خلاصه آمار" className="grid grid-cols-3 gap-3">
+   652→      <QuickStat
+   653→        icon={<DumbbellIcon className="size-4" />}
+   654→        value={toFa(sumWeek(state))}
+   655→        label="شنا این هفته"
+   656→      />
+   657→      <QuickStat
+   658→        icon={<FlameIcon className="size-4" />}
+   659→        value={toFa(state.bestStreak)}
+   660→        label="بهترین استریک"
+   661→      />
+   662→      <QuickStat
+   663→        icon={<CheckBadgeIcon className="size-4" />}
+   664→        value={toFa(state.totalWorkouts)}
+   665→        label="تمرین کامل"
+   666→      />
+   667→    </section>
+   668→  );
+   669→}
+   670→
+   671→function sumWeek(state: AppStateData) {
+   672→  return state.recentDays.reduce((a, d) => a + d.pushups, 0);
+   673→}
+   674→
+   675→function QuickStat({
+   676→  icon,
+   677→  value,
+   678→  label,
+   679→}: {
+   680→  icon: React.ReactNode;
+   681→  value: string;
+   682→  label: string;
+   683→}) {
+   684→  return (
+   685→    <div className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-card px-2 py-3 text-center">
+   686→      <div className="flex size-7 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400">
+   687→        {icon}
+   688→      </div>
+   689→      <span className="text-base font-black tabular-nums">{value}</span>
+   690→      <span className="text-[9.5px] font-bold text-muted-foreground">{label}</span>
+   691→    </div>
+   692→  );
+   693→}
+   694→

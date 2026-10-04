@@ -7,6 +7,9 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   try {
     await db.dayRecord.deleteMany({ where: { stateId: "main" } });
+    await db.maxRepTest.deleteMany({ where: { stateId: "main" } });
+    await db.weightEntry.deleteMany({ where: { stateId: "main" } });
+    await db.bodyPhoto.deleteMany({ where: { stateId: "main" } });
     await db.appState.update({
       where: { id: "main" },
       data: {
@@ -16,6 +19,8 @@ export async function POST() {
         lastCheckinDate: null,
         totalPushups: 0,
         totalWorkouts: 0,
+        freezeUsedDate: null,
+        freeMode: false,
       },
     });
     const state = await getFullState();

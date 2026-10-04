@@ -40,6 +40,15 @@ export interface AppStateData {
   recentDays: { date: string; pushups: number; type: DayType | null }[];
   achievements: { id: AchievementId; unlocked: boolean; def: AchievementDef }[];
   startedAt: string;
+  // ── Streak Freeze (هر ۷ روز یک‌بار، روز جاافتاده تکی را نجات می‌دهد) ──
+  freezeAvailable: boolean;
+  freezeUsedDate: string | null;
+  /** اگر freeze مصرف شده باشد: تاریخ دوباره در دسترس قرار گرفتن (null = هم‌اکنون موجود) */
+  freezeNextAvailableDate: string | null;
+  // ── حالت تمرین آزاد پس از پایان چالش ──
+  freeMode: boolean;
+  // ── تقویم حرارتی: آخرین ۷۰ روز (۱۰ هفته) برای heatmap ──
+  calendarDays: { date: string; pushups: number }[];
 }
 
 export interface CelebrationData {
@@ -53,6 +62,34 @@ export interface CelebrationData {
   newAchievementIds: AchievementId[];
   newLevel: { level: number; title: string } | null;
   finished: boolean;
+  /** ❄️ یخ استریک در این چک‌این مصرف شد */
+  freezeUsed?: boolean;
 }
 
-export type TabId = "today" | "plan" | "stats" | "awards";
+// ── تست حداکثر شنا ──
+export interface MaxRepTestItem {
+  id: string;
+  count: number;
+  date: string;
+}
+
+// ── ثبت وزن و عکس ──
+export interface WeightItem {
+  date: string;
+  kg: number;
+}
+
+export interface BodyPhotoItem {
+  image: string; // data URL
+  date: string;
+}
+
+export interface BodyData {
+  weights: WeightItem[];
+  photos: {
+    before: BodyPhotoItem | null;
+    after: BodyPhotoItem | null;
+  };
+}
+
+export type TabId = "today" | "plan" | "learn" | "stats" | "awards";
